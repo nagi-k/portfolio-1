@@ -66,7 +66,14 @@ export const projects: Project[] = Object.entries(projectFiles)
 
 export const featuredProjects = projects.filter((p) => p.featured)
 
-export const categories = [...new Set(projects.map((p) => p.category))]
+/** 固定分类展示顺序 */
+export const categoryOrder = ['工业设计', '交互设计', 'UI设计', 'UX设计']
+
+export const categories = categoryOrder.filter((c) => projects.some((p) => p.category === c))
+
+export function projectsByCategory(category: string) {
+  return projects.filter((p) => p.category === category)
+}
 
 export function getProject(slug: string) {
   return projects.find((p) => p.slug === slug)

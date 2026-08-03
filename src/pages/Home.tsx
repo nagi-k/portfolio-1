@@ -1,7 +1,75 @@
 import { Link } from 'react-router-dom'
+import { ArrowRight, ArrowUpRight } from 'lucide-react'
 import ProjectCarousel from '../components/ProjectCarousel'
 import Reveal from '../components/Reveal'
-import { featuredProjects, projects, site } from '../lib/content'
+import { categories, featuredProjects, projects, projectsByCategory, site } from '../lib/content'
+import { resolveAsset } from '../lib/content'
+
+function CategorySection({ category }: { category: string }) {
+  const items = projectsByCategory(category)
+  if (items.length === 0) return null
+
+  return (
+    <section className="border-t border-line bg-white py-16 md:py-24">
+      <div className="container-site">
+        <Reveal>
+          <div className="mb-8 flex items-end justify-between md:mb-10">
+            <div>
+              <p className="section-label">{String(items.length).padStart(2, '0')} Projects</p>
+              <h2 className="mt-2 text-2xl font-light md:text-3xl">{category}</h2>
+            </div>
+            <Link
+              to="/works"
+              className="group hidden items-center gap-1 text-sm text-ink-mute transition-colors hover:text-accent md:flex"
+            >
+              查看全部
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </div>
+        </Reveal>
+
+        {/* 横向滚动卡片 */}
+        <div className="-mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-4 md:-mx-8 md:gap-6 md:px-8">
+          {items.map((p, i) => (
+            <Reveal key={p.slug} delay={i * 80} className="snap-start">
+              <Link
+                to={`/works/${p.slug}`}
+                className="group relative block w-[78vw] flex-shrink-0 overflow-hidden bg-paper md:w-[32rem]"
+              >
+                <div className="overflow-hidden bg-line">
+                  <img
+                    src={resolveAsset(p.cover)}
+                    alt={p.title}
+                    loading="lazy"
+                    className="aspect-[4/3] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                  />
+                </div>
+
+                <div className="mt-4 flex items-start justify-between pr-2">
+                  <div>
+                    <h3 className="text-lg font-normal transition-colors group-hover:text-accent">
+                      {p.title}
+                    </h3>
+                    <p className="mt-1 line-clamp-2 text-sm text-ink-mute">{p.excerpt}</p>
+                  </div>
+                  <span className="mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-line opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100">
+                    <ArrowUpRight className="h-4 w-4 text-ink-mute" />
+                  </span>
+                </div>
+
+                <div className="mt-3 flex items-center gap-3 text-xs text-ink-mute">
+                  <span className="font-en">{p.year}</span>
+                  <span className="h-px w-4 bg-line" />
+                  <span>{p.category}</span>
+                </div>
+              </Link>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
 
 export default function Home() {
   return (
@@ -57,6 +125,32 @@ export default function Home() {
           </Reveal>
         </div>
       </section>
+
+      {/* 分类快速入口 */}
+      <section className="border-b border-line bg-white">
+        <div className="container-site py-8">
+          <Reveal>
+            <div className="flex flex-wrap items-center gap-3 md:gap-4">
+              <span className="mr-2 text-xs text-ink-mute">按领域浏览</span>
+              {categories.map((cat) => (
+                <Link
+                  key={cat}
+                  to="/works"
+                  className="group inline-flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2 text-sm text-ink transition-all hover:border-accent hover:bg-accent hover:text-white"
+                >
+                  {cat}
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              ))}
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* 四大分类作品展示 */}
+      {categories.map((cat) => (
+        <CategorySection key={cat} category={cat} />
+      ))}
 
       {/* 项目索引 */}
       <section className="container-site py-20 md:py-28">

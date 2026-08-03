@@ -39,7 +39,7 @@ collections:
       - label: 类别
         name: category
         widget: select
-        options: [工业设计, 交互设计, 服务设计, 视觉实验]
+        options: [工业设计, 交互设计, UI设计, UX设计]
         default: 工业设计
       - { label: 封面图, name: cover, widget: image, hint: 建议 4:3，网页用低分辨率版本 }
       - { label: 一句话描述, name: excerpt, widget: text }
