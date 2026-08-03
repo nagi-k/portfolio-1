@@ -50,7 +50,6 @@ collections:
         name: body
         widget: markdown
         hint: 建议结构：项目背景 → 设计问题 → 设计过程 → 成果与反思；可直接插入画廊图片
-        buttons: [bold, italic, heading-two, heading-three, bulleted-list, numbered-list, quote, image, link]
 
   # ── 页面内容 ──────────────────────────
   - name: pages
