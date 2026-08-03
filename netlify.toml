@@ -1,0 +1,7 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  # Netlify 站点根路径部署，VITE_BASE 用 /
+  VITE_BASE = "/"
