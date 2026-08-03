@@ -118,7 +118,7 @@ export default function ProjectCarousel({ projects, variant = 'default' }: Props
         <>
           <button
             onClick={() => go(current - 1)}
-            className="absolute top-1/2 -translate-y-1/2 rounded-full border border-white/20 bg-ink/30 p-1.5 text-white backdrop-blur-sm transition-colors hover:bg-ink/60 md:p-2"
+            className={`absolute -translate-y-1/2 rounded-full border border-white/20 bg-ink/30 p-1.5 text-white backdrop-blur-sm transition-colors hover:bg-ink/60 md:p-2 ${isHero ? 'top-[58%]' : 'top-1/2'}`}
             style={{ left: '1rem' }}
             aria-label="上一个"
           >
@@ -126,7 +126,7 @@ export default function ProjectCarousel({ projects, variant = 'default' }: Props
           </button>
           <button
             onClick={() => go(current + 1)}
-            className="absolute top-1/2 -translate-y-1/2 rounded-full border border-white/20 bg-ink/30 p-1.5 text-white backdrop-blur-sm transition-colors hover:bg-ink/60 md:p-2"
+            className={`absolute -translate-y-1/2 rounded-full border border-white/20 bg-ink/30 p-1.5 text-white backdrop-blur-sm transition-colors hover:bg-ink/60 md:p-2 ${isHero ? 'top-[58%]' : 'top-1/2'}`}
             style={{ right: '1rem' }}
             aria-label="下一个"
           >
