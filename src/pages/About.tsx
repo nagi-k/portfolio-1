@@ -4,13 +4,13 @@ import { about, site, resolveAsset } from '../lib/content'
 
 export default function About() {
   return (
-    <div className="container-site py-16 md:py-24">
+    <div className="container-site py-14 md:py-24">
       <Reveal>
         <p className="section-label">About</p>
-        <h1 className="mt-3 text-3xl font-light md:text-4xl">关于我</h1>
+        <h1 className="mt-3 text-2xl font-light md:text-4xl">关于我</h1>
       </Reveal>
 
-      <div className="mt-14 grid gap-14 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:gap-20">
+      <div className="mt-10 grid gap-12 md:mt-14 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:gap-20">
         {/* 左：肖像 + 联系 */}
         <Reveal>
           <div>
@@ -18,7 +18,9 @@ export default function About() {
               <img
                 src={resolveAsset(about.portrait)}
                 alt={site.name}
-                className="aspect-[4/5] w-full bg-line object-cover"
+                loading="lazy"
+                decoding="async"
+                className="aspect-[4/5] w-full max-w-sm bg-line object-cover"
               />
             )}
             <div className="mt-8 space-y-2 text-sm">
@@ -55,9 +57,9 @@ export default function About() {
           </Reveal>
 
           <Reveal delay={140}>
-            <div className="mt-16 border-t border-line pt-10">
-              <p className="section-label mb-8">Capabilities</p>
-              <div className="grid gap-8 sm:grid-cols-2">
+            <div className="mt-14 border-t border-line pt-8 md:mt-16 md:pt-10">
+              <p className="section-label mb-6 md:mb-8">Capabilities</p>
+              <div className="grid gap-6 sm:grid-cols-2 md:gap-8">
                 {(about.skills || []).map((g) => (
                   <div key={g.group}>
                     <h3 className="text-sm font-medium">{g.group}</h3>

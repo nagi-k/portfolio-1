@@ -37,13 +37,24 @@ export default function Layout() {
       {/* 固定导航 */}
       <header
         className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
-          scrolled ? 'bg-paper/90 backdrop-blur border-b border-line' : 'bg-transparent'
+          scrolled ? 'bg-paper/95 backdrop-blur border-b border-line' : 'bg-transparent'
         }`}
       >
-        <div className="container-site flex h-16 items-center justify-between">
-          <Link to="/" className="text-[15px] font-medium tracking-wide">
+        <div className="container-site flex h-14 items-center justify-between md:h-16">
+          <Link
+            to="/"
+            className={`text-sm font-medium tracking-wide transition-colors md:text-[15px] ${
+              !scrolled && location.pathname === '/' ? 'text-white' : 'text-ink'
+            }`}
+          >
             {site.name || 'Portfolio'}
-            <span className="ml-2 hidden text-xs text-ink-mute sm:inline">{site.role}</span>
+            <span
+              className={`ml-2 hidden text-xs sm:inline ${
+                !scrolled && location.pathname === '/' ? 'text-white/70' : 'text-ink-mute'
+              }`}
+            >
+              {site.role}
+            </span>
           </Link>
 
           {/* 桌面导航 */}
@@ -81,10 +92,18 @@ export default function Layout() {
           >
             <div className="space-y-1.5">
               <span
-                className={`block h-px w-5 bg-ink transition-transform ${menuOpen ? 'translate-y-[3.5px] rotate-45' : ''}`}
+                className={`block h-px w-5 transition-transform ${
+                  menuOpen
+                    ? 'translate-y-[3.5px] rotate-45 bg-ink'
+                    : `bg-ink ${!scrolled && location.pathname === '/' ? 'bg-white' : 'bg-ink'}`
+                }`}
               />
               <span
-                className={`block h-px w-5 bg-ink transition-transform ${menuOpen ? '-translate-y-[3px] -rotate-45' : ''}`}
+                className={`block h-px w-5 transition-transform ${
+                  menuOpen
+                    ? '-translate-y-[3px] -rotate-45 bg-ink'
+                    : `bg-ink ${!scrolled && location.pathname === '/' ? 'bg-white' : 'bg-ink'}`
+                }`}
               />
             </div>
           </button>
@@ -109,7 +128,7 @@ export default function Layout() {
         )}
       </header>
 
-      <main className="flex-1 pt-16">
+      <main className="flex-1 pt-14 md:pt-16">
         <Outlet />
       </main>
 

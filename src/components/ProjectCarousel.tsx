@@ -40,6 +40,8 @@ export default function ProjectCarousel({ projects, variant = 'default' }: Props
                 <img
                   src={resolveAsset(p.cover)}
                   alt={p.title}
+                  loading={isHero ? 'eager' : 'lazy'}
+                  decoding="async"
                   className="h-full w-full object-cover opacity-90 transition-opacity duration-700 group-hover:opacity-100"
                 />
 
@@ -54,7 +56,7 @@ export default function ProjectCarousel({ projects, variant = 'default' }: Props
                         <p className="font-en text-xs uppercase tracking-widest text-white/60">
                           {p.category} · {p.year}
                         </p>
-                        <h3 className="mt-3 text-2xl font-light tracking-tight md:text-4xl">
+                        <h3 className="mt-3 text-xl font-light tracking-tight md:text-4xl">
                           {p.title}
                         </h3>
                         <p className="mt-2 max-w-xl text-sm text-white/70 md:text-base">
@@ -73,26 +75,38 @@ export default function ProjectCarousel({ projects, variant = 'default' }: Props
         ))}
       </div>
 
+      {/* Hero 底部当前项目提示 */}
+      {isHero && total > 0 && (
+        <div className="pointer-events-none absolute bottom-0 left-0 w-full bg-gradient-to-t from-ink/70 to-transparent pb-24 pt-12 md:pb-28">
+          <div className="container-site">
+            <p className="font-en text-[10px] uppercase tracking-widest text-white/50 md:text-xs">
+              Featured · {projects[current].category} · {projects[current].year}
+            </p>
+            <p className="mt-1 text-sm text-white/80 md:text-base">
+              {projects[current].title}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Controls */}
       {total > 1 && (
         <>
           <button
             onClick={() => go(current - 1)}
-            className={`absolute top-1/2 -translate-y-1/2 rounded-full border border-white/20 bg-ink/30 p-2 text-white backdrop-blur-sm transition-colors hover:bg-ink/60 ${
-              isHero ? 'left-4 md:left-8' : 'left-4 md:left-8'
-            }`}
+            className="absolute top-1/2 -translate-y-1/2 rounded-full border border-white/20 bg-ink/30 p-1.5 text-white backdrop-blur-sm transition-colors hover:bg-ink/60 md:p-2"
+            style={{ left: '1rem' }}
             aria-label="上一个"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-4 w-4 md:h-5 md:w-5" />
           </button>
           <button
             onClick={() => go(current + 1)}
-            className={`absolute top-1/2 -translate-y-1/2 rounded-full border border-white/20 bg-ink/30 p-2 text-white backdrop-blur-sm transition-colors hover:bg-ink/60 ${
-              isHero ? 'right-4 md:right-8' : 'right-4 md:right-8'
-            }`}
+            className="absolute top-1/2 -translate-y-1/2 rounded-full border border-white/20 bg-ink/30 p-1.5 text-white backdrop-blur-sm transition-colors hover:bg-ink/60 md:p-2"
+            style={{ right: '1rem' }}
             aria-label="下一个"
           >
-            <ChevronRight className="h-5 w-5" />
+            <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
           </button>
 
           {/* Indicators */}

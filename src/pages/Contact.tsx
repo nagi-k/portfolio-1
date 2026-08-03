@@ -3,12 +3,12 @@ import { site } from '../lib/content'
 
 export default function Contact() {
   return (
-    <div className="container-site flex min-h-[70vh] flex-col justify-center py-24">
+    <div className="container-site flex min-h-[70vh] flex-col justify-center py-20 md:py-24">
       <Reveal>
         <p className="section-label">Contact</p>
       </Reveal>
       <Reveal delay={80}>
-        <h1 className="mt-6 max-w-2xl text-3xl font-light leading-snug md:text-5xl md:leading-tight">
+        <h1 className="mt-5 max-w-2xl text-2xl font-light leading-snug md:mt-6 md:text-5xl md:leading-tight">
           有项目想聊聊？
           <br />
           随时给我写信。
@@ -17,13 +17,13 @@ export default function Contact() {
       <Reveal delay={160}>
         <a
           href={`mailto:${site.email}`}
-          className="mt-10 inline-block font-en text-xl text-accent underline decoration-accent/30 underline-offset-8 transition-colors hover:decoration-accent md:text-2xl"
+          className="mt-8 inline-block font-en text-lg text-accent underline decoration-accent/30 underline-offset-8 transition-colors hover:decoration-accent md:mt-10 md:text-2xl"
         >
           {site.email}
         </a>
       </Reveal>
       <Reveal delay={220}>
-        <div className="mt-14 flex flex-wrap gap-x-6 gap-y-2">
+        <div className="mt-12 flex flex-wrap gap-x-6 gap-y-2 md:mt-14">
           {(site.socials || []).map((s) => (
             <a
               key={s.label}

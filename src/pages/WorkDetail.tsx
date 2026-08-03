@@ -16,25 +16,25 @@ export default function WorkDetail() {
   return (
     <article>
       {/* 头部信息 */}
-      <header className="container-site py-16 md:py-24">
+      <header className="container-site py-14 md:py-24">
         <Reveal>
           <Link to="/works" className="text-sm text-ink-mute transition-colors hover:text-accent">
             ← 全部作品
           </Link>
         </Reveal>
         <Reveal delay={60}>
-          <div className="mt-8 flex flex-wrap items-baseline gap-x-6 gap-y-2">
-            <h1 className="text-3xl font-light md:text-5xl">{project.title}</h1>
+          <div className="mt-6 flex flex-wrap items-baseline gap-x-6 gap-y-2 md:mt-8">
+            <h1 className="text-2xl font-light md:text-5xl">{project.title}</h1>
             <span className="font-en text-sm text-ink-mute">{project.year}</span>
           </div>
         </Reveal>
         <Reveal delay={120}>
-          <p className="mt-6 max-w-2xl text-[15px] leading-relaxed text-ink-soft">
+          <p className="mt-5 max-w-2xl text-sm leading-relaxed text-ink-soft md:mt-6 md:text-[15px]">
             {project.excerpt}
           </p>
         </Reveal>
         <Reveal delay={160}>
-          <dl className="mt-10 grid max-w-2xl grid-cols-2 gap-6 border-t border-line pt-8 text-sm md:grid-cols-4">
+          <dl className="mt-8 grid max-w-2xl grid-cols-2 gap-5 border-t border-line pt-7 text-sm md:mt-10 md:gap-6 md:pt-8 md:grid-cols-4">
             <div>
               <dt className="text-xs text-ink-mute">类别</dt>
               <dd className="mt-1.5">{project.category}</dd>
@@ -65,13 +65,15 @@ export default function WorkDetail() {
           <img
             src={resolveAsset(project.cover)}
             alt={project.title}
-            className="w-full bg-line object-cover"
+            loading="eager"
+            decoding="async"
+            className="max-h-[70vh] w-full bg-line object-contain md:max-h-[80vh]"
           />
         </div>
       </Reveal>
 
       {/* 正文：背景 / 问题 / 过程 / 成果（Markdown） */}
-      <div className="container-site py-16 md:py-24">
+      <div className="container-site py-14 md:py-24">
         <Reveal>
           <div className="mx-auto max-w-2xl">
             <Markdown text={project.body} />
