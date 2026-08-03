@@ -11,8 +11,11 @@ interface Props {
 
 export default function ProjectCarousel({ projects, variant = 'default' }: Props) {
   const [current, setCurrent] = useState(0)
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
   const total = projects.length
   const isHero = variant === 'hero'
+  const minSwipeDistance = 50
 
   useEffect(() => {
     if (total <= 1) return
@@ -26,8 +29,29 @@ export default function ProjectCarousel({ projects, variant = 'default' }: Props
 
   const go = (index: number) => setCurrent((index + total) % total)
 
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return
+    const distance = touchStart - touchEnd
+    if (distance > minSwipeDistance) go(current + 1)
+    if (distance < -minSwipeDistance) go(current - 1)
+  }
+
   return (
-    <div className={`relative w-full overflow-hidden ${isHero ? 'h-full bg-ink' : 'bg-ink'}`}>
+    <div
+      className={`relative w-full overflow-hidden ${isHero ? 'h-full bg-ink' : 'bg-ink'}`}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
       {/* Slides */}
       <div
         className="flex h-full transition-transform duration-700 ease-out"

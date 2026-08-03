@@ -44,13 +44,13 @@ export default function Layout() {
           <Link
             to="/"
             className={`text-sm font-medium tracking-wide transition-colors md:text-[15px] ${
-              !scrolled && location.pathname === '/' ? 'text-white' : 'text-ink'
+              !scrolled && location.pathname === '/' ? 'text-ink-mute' : 'text-ink'
             }`}
           >
             {site.name || 'Portfolio'}
             <span
               className={`ml-2 hidden text-xs sm:inline ${
-                !scrolled && location.pathname === '/' ? 'text-white/70' : 'text-ink-mute'
+                !scrolled && location.pathname === '/' ? 'text-ink-mute/70' : 'text-ink-mute'
               }`}
             >
               {site.role}
@@ -92,19 +92,19 @@ export default function Layout() {
           >
             <div className="space-y-1.5">
               <span
-                className={`block h-px w-5 transition-transform ${
-                  menuOpen
-                    ? 'translate-y-[3.5px] rotate-45 bg-ink'
-                    : `bg-ink ${!scrolled && location.pathname === '/' ? 'bg-white' : 'bg-ink'}`
-                }`}
-              />
-              <span
-                className={`block h-px w-5 transition-transform ${
-                  menuOpen
-                    ? '-translate-y-[3px] -rotate-45 bg-ink'
-                    : `bg-ink ${!scrolled && location.pathname === '/' ? 'bg-white' : 'bg-ink'}`
-                }`}
-              />
+                  className={`block h-px w-5 transition-transform ${
+                    menuOpen
+                      ? 'translate-y-[3.5px] rotate-45 bg-ink'
+                      : `bg-ink ${!scrolled && location.pathname === '/' ? 'bg-ink-mute' : 'bg-ink'}`
+                  }`}
+                />
+                <span
+                  className={`block h-px w-5 transition-transform ${
+                    menuOpen
+                      ? '-translate-y-[3px] -rotate-45 bg-ink'
+                      : `bg-ink ${!scrolled && location.pathname === '/' ? 'bg-ink-mute' : 'bg-ink'}`
+                  }`}
+                />
             </div>
           </button>
         </div>

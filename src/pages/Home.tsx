@@ -78,16 +78,16 @@ export default function Home() {
       {/* Hero：轮播图背景 + 个人定位/介绍叠加 */}
       <section className="relative min-h-[85vh] overflow-hidden bg-ink md:min-h-[92vh]">
         {/* 轮播背景 */}
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 z-0">
           <ProjectCarousel projects={featuredProjects} variant="hero" />
         </div>
 
         {/* 顶部暗色渐变，保证左上角文字可读 */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-ink/80 via-ink/30 to-transparent md:from-ink/70 md:via-ink/20" />
+        <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-ink/80 via-ink/30 to-transparent md:from-ink/70 md:via-ink/20" />
 
         {/* Hero 文字 */}
-        <div className="container-site relative z-10 flex min-h-[85vh] flex-col justify-between pb-8 pt-20 md:min-h-[92vh] md:pb-14 md:pt-32">
-          <div>
+        <div className="container-site pointer-events-none relative z-10 flex min-h-[85vh] flex-col justify-between pb-8 pt-20 md:min-h-[92vh] md:pb-14 md:pt-32">
+          <div className="pointer-events-auto">
             <Reveal>
               <p className="section-label text-white/70">{site.role || 'Industrial / Interaction Designer'}</p>
             </Reveal>
@@ -118,7 +118,7 @@ export default function Home() {
           </div>
 
           {/* 底部滚动提示 */}
-          <Reveal delay={300}>
+          <Reveal delay={300} className="pointer-events-auto">
             <div className="hidden items-center gap-3 text-xs text-white/50 md:flex">
               <span className="font-en uppercase tracking-widest">Scroll</span>
               <span className="h-px w-8 bg-white/30" />
