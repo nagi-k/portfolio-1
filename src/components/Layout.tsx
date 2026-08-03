@@ -24,6 +24,12 @@ export default function Layout() {
 
   useEffect(() => setMenuOpen(false), [location.pathname])
 
+  useEffect(() => {
+    const name = site.name?.trim() || 'Portfolio'
+    const role = site.role?.trim()
+    document.title = role ? `${name} · ${role}` : name
+  }, [])
+
   return (
     <div className="flex min-h-screen flex-col">
       <ScrollToTop />
