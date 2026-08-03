@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    @apply bg-accent/10 text-accent;
+  }
+}
+
+@layer components {
+  /* 容器 */
+  .container-site {
+    @apply mx-auto w-full max-w-site px-6 md:px-10;
+  }
+
+  /* 小标签：SECTION LABEL */
+  .section-label {
+    @apply font-en text-xs font-medium uppercase tracking-widest2 text-ink-mute;
+  }
+
+  /* 滚动揭示动效（克制） */
+  .reveal {
+    @apply opacity-0 translate-y-6 transition-all duration-700 ease-out;
+  }
+  .reveal.is-visible {
+    @apply opacity-100 translate-y-0;
+  }
+
+  /* Markdown 正文排版 */
+  .prose-body {
+    @apply text-[15px] leading-[1.9] text-ink-soft;
+  }
+  .prose-body h2 {
+    @apply mt-12 mb-4 text-xl font-medium text-ink;
+  }
+  .prose-body h3 {
+    @apply mt-8 mb-3 text-base font-medium text-ink;
+  }
+  .prose-body p {
+    @apply my-4;
+  }
+  .prose-body ul {
+    @apply my-4 list-disc pl-5 space-y-2;
+  }
+  .prose-body ol {
+    @apply my-4 list-decimal pl-5 space-y-2;
+  }
+  .prose-body strong {
+    @apply font-medium text-ink;
+  }
+  .prose-body blockquote {
+    @apply my-6 border-l-2 border-accent/40 pl-4 text-ink-mute;
+  }
+  .prose-body img {
+    @apply my-8 w-full;
+  }
+  .prose-body hr {
+    @apply my-10 border-line;
+  }
+}

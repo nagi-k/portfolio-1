@@ -1,0 +1,92 @@
+# ─────────────────────────────────────────────
+# Decap CMS 配置
+# 部署前请修改：
+#   1. backend.repo → 你的 GitHub 用户名/仓库名
+#   2. backend.base_url → 你的 OAuth 服务地址（见 README「后台登录配置」）
+# ─────────────────────────────────────────────
+
+backend:
+  name: github
+  repo: YOUR_GITHUB_USERNAME/YOUR_REPO # TODO: 改成 用户名/仓库名
+  branch: main
+  base_url: https://api.netlify.com # 使用 Netlify 作为 OAuth 提供方（无需托管站点）
+  auth_endpoint: auth
+
+local_backend: true # 本地编辑模式：npx decap-server 后免登录使用
+
+media_folder: public/images/uploads # 上传图片存放位置
+public_folder: /images/uploads # 图片在文章中的引用路径
+
+publish_mode: simple # 保存即提交到 main 分支，触发自动部署
+
+slug:
+  encoding: ascii
+  clean_accents: true
+  sanitize_replacement: '-'
+
+collections:
+  # ── 作品 ──────────────────────────────
+  - name: projects
+    label: 作品
+    folder: content/projects
+    create: true
+    slug: '{{year}}-{{slug}}'
+    sortable_fields: [order, year, title]
+    summary: '{{title}} ({{year}})'
+    fields:
+      - { label: 标题, name: title, widget: string }
+      - { label: 年份, name: year, widget: string, hint: 如 2025 }
+      - label: 类别
+        name: category
+        widget: select
+        options: [工业设计, 交互设计, 服务设计, 视觉实验]
+        default: 工业设计
+      - { label: 封面图, name: cover, widget: image, hint: 建议 4:3，网页用低分辨率版本 }
+      - { label: 一句话描述, name: excerpt, widget: text }
+      - { label: 标签, name: tags, widget: list, field: { label: 标签, name: tag, widget: string } }
+      - { label: 担任角色, name: role, widget: string, required: false }
+      - { label: 客户 / 背景, name: client, widget: string, required: false }
+      - { label: 首页精选, name: featured, widget: boolean, default: false }
+      - { label: 隐藏（不上线）, name: hidden, widget: boolean, default: false }
+      - { label: 排序权重（小在前）, name: order, widget: number, default: 99, value_type: int }
+      - label: 项目正文
+        name: body
+        widget: markdown
+        hint: 建议结构：项目背景 → 设计问题 → 设计过程 → 成果与反思；可直接插入画廊图片
+        buttons: [bold, italic, heading-two, heading-three, bulleted-list, numbered-list, quote, image, link]
+
+  # ── 页面内容 ──────────────────────────
+  - name: pages
+    label: 页面内容
+    icon: page
+    files:
+      - name: site
+        label: 站点信息（导航 / 页脚 / 联系）
+        file: content/pages/site.md
+        fields:
+          - { label: 姓名, name: name, widget: string }
+          - { label: 职业定位, name: role, widget: string, hint: 显示在导航与首页，如：工业 / 交互设计师 }
+          - { label: 一句话介绍, name: tagline, widget: text }
+          - { label: 首页简介, name: intro, widget: text }
+          - { label: 邮箱, name: email, widget: string }
+          - { label: 所在城市, name: location, widget: string }
+          - label: 社交链接
+            name: socials
+            widget: list
+            fields:
+              - { label: 平台名, name: label, widget: string }
+              - { label: 链接, name: url, widget: string }
+
+      - name: about
+        label: 关于我
+        file: content/pages/about.md
+        fields:
+          - { label: 肖像照, name: portrait, widget: image, required: false }
+          - label: 技能分组
+            name: skills
+            widget: list
+            summary: '{{fields.group}}'
+            fields:
+              - { label: 分组名, name: group, widget: string }
+              - { label: 技能（顿号分隔）, name: items, widget: text }
+          - { label: 个人简介, name: body, widget: markdown }
