@@ -6,55 +6,56 @@ import { featuredProjects, projects, site } from '../lib/content'
 export default function Home() {
   return (
     <div>
-      {/* Hero：个人定位 + 一句话介绍 */}
-      <section className="container-site pb-24 pt-24 md:pb-36 md:pt-40">
-        <Reveal>
-          <p className="section-label">{site.role || 'Industrial / Interaction Designer'}</p>
-        </Reveal>
-        <Reveal delay={80}>
-          <h1 className="mt-6 max-w-3xl text-4xl font-light leading-[1.25] tracking-tight md:text-6xl md:leading-[1.18]">
-            {site.tagline}
-          </h1>
-        </Reveal>
-        <Reveal delay={160}>
-          <p className="mt-8 max-w-xl text-[15px] leading-relaxed text-ink-soft">{site.intro}</p>
-        </Reveal>
-        <Reveal delay={220}>
-          <div className="mt-12 flex items-center gap-6">
-            <Link
-              to="/works"
-              className="group inline-flex items-center gap-2 border border-ink px-6 py-3 text-sm transition-colors hover:bg-ink hover:text-paper"
-            >
-              查看作品
-              <span className="transition-transform group-hover:translate-x-1">→</span>
-            </Link>
-            <Link to="/contact" className="text-sm text-ink-mute transition-colors hover:text-accent">
-              联系我
-            </Link>
-          </div>
-        </Reveal>
-      </section>
+      {/* Hero：轮播图背景 + 个人定位/介绍叠加 */}
+      <section className="relative min-h-[92vh] overflow-hidden bg-ink">
+        {/* 轮播背景 */}
+        <div className="absolute inset-0">
+          <ProjectCarousel projects={featuredProjects} variant="hero" />
+        </div>
 
-      {/* 精选作品轮播 */}
-      <section className="border-t border-line">
-        <div className="container-site py-12 md:py-16">
-          <Reveal>
-            <div className="mb-8 flex items-end justify-between md:mb-10">
-              <div>
-                <p className="section-label">Selected Works</p>
-                <h2 className="mt-3 text-2xl font-light md:text-3xl">精选作品</h2>
+        {/* 顶部暗色渐变，保证左上角文字可读 */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-ink/70 via-ink/20 to-transparent" />
+
+        {/* Hero 文字 */}
+        <div className="container-site relative z-10 flex min-h-[92vh] flex-col justify-between pb-10 pt-24 md:pb-14 md:pt-32">
+          <div>
+            <Reveal>
+              <p className="section-label text-white/70">{site.role || 'Industrial / Interaction Designer'}</p>
+            </Reveal>
+            <Reveal delay={80}>
+              <h1 className="mt-5 max-w-3xl text-3xl font-light leading-[1.3] tracking-tight text-white md:mt-6 md:text-5xl md:leading-[1.22]">
+                {site.tagline}
+              </h1>
+            </Reveal>
+            <Reveal delay={160}>
+              <p className="mt-5 max-w-md text-sm leading-relaxed text-white/75 md:mt-6 md:text-[15px]">
+                {site.intro}
+              </p>
+            </Reveal>
+            <Reveal delay={220}>
+              <div className="mt-8 flex items-center gap-5 md:mt-10">
+                <Link
+                  to="/works"
+                  className="group inline-flex items-center gap-2 border border-white/40 bg-white/10 px-6 py-3 text-sm text-white backdrop-blur-sm transition-colors hover:bg-white hover:text-ink"
+                >
+                  查看作品
+                  <span className="transition-transform group-hover:translate-x-1">→</span>
+                </Link>
+                <Link to="/contact" className="text-sm text-white/70 transition-colors hover:text-white">
+                  联系我
+                </Link>
               </div>
-              <Link
-                to="/works"
-                className="hidden text-sm text-ink-mute transition-colors hover:text-accent md:block"
-              >
-                全部作品 →
-              </Link>
+            </Reveal>
+          </div>
+
+          {/* 底部滚动提示 */}
+          <Reveal delay={300}>
+            <div className="hidden items-center gap-3 text-xs text-white/50 md:flex">
+              <span className="font-en uppercase tracking-widest">Scroll</span>
+              <span className="h-px w-8 bg-white/30" />
             </div>
           </Reveal>
         </div>
-
-        <ProjectCarousel projects={featuredProjects} />
       </section>
 
       {/* 项目索引 */}
