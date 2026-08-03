@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
+import ProjectCarousel from '../components/ProjectCarousel'
 import Reveal from '../components/Reveal'
-import { featuredProjects, projects, site, resolveAsset } from '../lib/content'
+import { featuredProjects, projects, site } from '../lib/content'
 
 export default function Home() {
   return (
@@ -34,11 +35,11 @@ export default function Home() {
         </Reveal>
       </section>
 
-      {/* 精选作品 */}
-      <section className="border-t border-line bg-white">
-        <div className="container-site py-20 md:py-28">
+      {/* 精选作品轮播 */}
+      <section className="border-t border-line">
+        <div className="container-site py-12 md:py-16">
           <Reveal>
-            <div className="mb-12 flex items-end justify-between">
+            <div className="mb-8 flex items-end justify-between md:mb-10">
               <div>
                 <p className="section-label">Selected Works</p>
                 <h2 className="mt-3 text-2xl font-light md:text-3xl">精选作品</h2>
@@ -51,33 +52,9 @@ export default function Home() {
               </Link>
             </div>
           </Reveal>
-
-          <div className="grid gap-x-8 gap-y-16 md:grid-cols-2">
-            {featuredProjects.map((p, i) => (
-              <Reveal key={p.slug} delay={i * 60} className={i % 2 === 1 ? 'md:mt-16' : ''}>
-                <Link to={`/works/${p.slug}`} className="group block">
-                  <div className="overflow-hidden bg-line">
-                    <img
-                      src={resolveAsset(p.cover)}
-                      alt={p.title}
-                      loading="lazy"
-                      className="aspect-[4/3] w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-                    />
-                  </div>
-                  <div className="mt-5 flex items-baseline justify-between">
-                    <h3 className="text-lg font-normal transition-colors group-hover:text-accent">
-                      {p.title}
-                    </h3>
-                    <span className="font-en text-xs text-ink-mute">{p.year}</span>
-                  </div>
-                  <p className="mt-1.5 text-sm text-ink-mute">
-                    {p.category} · {p.excerpt}
-                  </p>
-                </Link>
-              </Reveal>
-            ))}
-          </div>
         </div>
+
+        <ProjectCarousel projects={featuredProjects} />
       </section>
 
       {/* 项目索引 */}
