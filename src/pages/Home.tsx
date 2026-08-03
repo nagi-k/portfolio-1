@@ -110,6 +110,13 @@ export default function Home() {
                   查看作品
                   <span className="transition-transform group-hover:translate-x-1">→</span>
                 </Link>
+                <Link
+                  to="/about"
+                  className="group inline-flex items-center gap-2 border border-white/40 bg-white/10 px-5 py-2.5 text-sm text-white backdrop-blur-sm transition-colors hover:bg-white hover:text-ink md:px-6 md:py-3"
+                >
+                  关于我
+                  <span className="transition-transform group-hover:translate-x-1">→</span>
+                </Link>
                 <Link to="/contact" className="text-sm text-white/70 transition-colors hover:text-white">
                   联系我
                 </Link>
