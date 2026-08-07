@@ -1,0 +1,34 @@
+name: Deploy to CloudBase
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          # CloudBase 部署在站点根路径
+          VITE_BASE: /
+
+      - name: Install CloudBase CLI
+        run: npm install -g @cloudbase/cli
+
+      - name: Login CloudBase
+        run: tcb login --apiKeyId ${{ secrets.TCB_SECRET_ID }} --apiKey ${{ secrets.TCB_SECRET_KEY }}
+
+      - name: Deploy to CloudBase
+        run: tcb hosting deploy ./dist / -e ${{ secrets.TCB_ENV_ID }}

@@ -5,9 +5,11 @@
 # ─────────────────────────────────────────────
 
 backend:
-  name: git-gateway
+  name: github
   repo: nagi-k/portfolio-1
   branch: main
+  base_url: https://api.netlify.com
+  auth_endpoint: auth
 
 local_backend: true # 本地编辑模式：npx decap-server 后免登录使用
 
