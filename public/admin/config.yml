@@ -1,14 +1,12 @@
 # ─────────────────────────────────────────────
-# Decap CMS 配置（Netlify 托管 + Netlify Identity）
-# 部署前请修改：
-#   backend.repo → 你的 GitHub 用户名/仓库名
+# Decap CMS 配置（腾讯云 CloudBase 托管 + GitHub OAuth）
 # ─────────────────────────────────────────────
 
 backend:
   name: github
   repo: nagi-k/portfolio-1
   branch: main
-  base_url: https://api.netlify.com
+  base_url: https://nagi-k-d8gsfr0jmc6c1e6bb-1465022720.ap-shanghai.app.tcloudbase.com/github-oauth
   auth_endpoint: auth
 
 local_backend: true # 本地编辑模式：npx decap-server 后免登录使用
