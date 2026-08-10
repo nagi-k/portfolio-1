@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>车载HMI实时3D可视化系统 | Unity 3D开发</title>
+<style>
+/* ============================================================
+   CSS 变量：统一颜色 / 间距 / 圆角
+   ============================================================ */
+:root {
+  --bg-main: #0D0D0D;
+  --bg-sub: #0A0A0A;
+  --bg-card: #1A1A1A;
+  --bg-card-2: #242424;
+  --accent-cyan: #00F0FF;
+  --accent-orange: #FF6B00;
+  --accent-purple: #8B5CF6;
+  --accent-red: #EF4444;
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(255,255,255,0.7);
+  --text-tertiary: rgba(255,255,255,0.5);
+  --text-quaternary: rgba(255,255,255,0.3);
+  --border-thin: 1px solid rgba(255,255,255,0.06);
+  --border-light: 1px solid rgba(255,255,255,0.1);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --font-en: 'Inter', 'SF Pro Display', -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================================
+   基础重置
+   ============================================================ */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+}
+
+body {
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font-family: var(--font-en), "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-weight: 400;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  opacity: 0;
+  animation: pageIn 0.4s ease forwards;
+  overflow-x: hidden;
+}
+
+@keyframes pageIn {
+  to { opacity: 1; }
+}
+
+::selection {
+  background: rgba(0,240,255,0.25);
+}
+
+img { max-width: 100%; display: block; }
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+
+/* ============================================================
+   滚动触发动画基础类
+   ============================================================ */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.8s var(--ease-out), transform 0.8s var(--ease-out);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================================
+   1. 顶部导航栏
+   ============================================================ */
+.nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+  z-index: 100;
+  transition: background 0.3s, backdrop-filter 0.3s, border-bottom 0.3s;
+  border-bottom: 1px solid transparent;
+}
+.nav.scrolled {
+  background: rgba(13,13,13,0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.nav-back {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-tertiary);
+  transition: color 0.3s;
+}
+.nav-back:hover { color: var(--text-primary); }
+.nav-back .arrow {
+  display: inline-block;
+  transition: transform 0.3s;
+}
+.nav-back:hover .arrow { transform: translateX(-4px); }
+
+.nav-links {
+  display: flex;
+  gap: 36px;
+}
+.nav-link {
+  position: relative;
+  font-size: 14px;
+  color: var(--text-tertiary);
+  padding: 6px 0;
+  transition: color 0.3s;
+}
+.nav-link:hover { color: var(--text-primary); }
+.nav-link::after {
+  content: '';
+  position: absolute;
+  left: 0; bottom: 0;
+  width: 0;
+  height: 2px;
+  background: var(--accent-cyan);
+  transition: width 0.3s;
+}
+.nav-link.active { color: var(--accent-cyan); }
+.nav-link.active::after { width: 100%; }
+
+/* ============================================================
+   2. Hero 项目标题区
+   ============================================================ */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 24px;
+  position: relative;
+  background: #000;
+}
+
+.hero-tag {
+  display: inline-block;
+  padding: 8px 20px;
+  border-radius: 100px;
+  background: rgba(0,240,255,0.08);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(0,240,255,0.25);
+  font-size: 13px;
+  letter-spacing: 1px;
+  opacity: 0;
+  animation: fadeIn 0.8s var(--ease-out) 0.2s forwards;
+}
+
+.hero-title {
+  margin-top: 32px;
+  font-size: clamp(32px, 5vw, 64px);
+  font-weight: 300;
+  letter-spacing: 2px;
+  color: var(--text-primary);
+  opacity: 0;
+  transform: translateY(40px);
+  animation: slideUp 0.8s ease-out 0.4s forwards;
+}
+
+.hero-subtitle {
+  margin-top: 24px;
+  font-size: 16px;
+  color: var(--text-tertiary);
+  font-weight: 300;
+  letter-spacing: 0.5px;
+  opacity: 0;
+  animation: fadeIn 0.8s var(--ease-out) 0.6s forwards;
+}
+
+.hero-meta {
+  margin-top: 40px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  opacity: 0;
+  animation: fadeIn 0.8s var(--ease-out) 0.8s forwards;
+}
+.hero-meta span {
+  padding: 6px 16px;
+  border-radius: 100px;
+  background: rgba(255,255,255,0.05);
+  font-size: 12px;
+  color: var(--text-tertiary);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.hero-scroll {
+  position: absolute;
+  bottom: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  opacity: 0;
+  animation: fadeIn 0.8s var(--ease-out) 1.2s forwards;
+}
+.mouse-icon {
+  width: 24px;
+  height: 38px;
+  border: 1.5px solid rgba(255,255,255,0.3);
+  border-radius: 12px;
+  position: relative;
+}
+.mouse-icon::after {
+  content: '';
+  position: absolute;
+  top: 7px; left: 50%;
+  transform: translateX(-50%);
+  width: 3px; height: 7px;
+  border-radius: 2px;
+  background: var(--accent-cyan);
+  animation: scrollWheel 2s ease-in-out infinite;
+}
+.scroll-arrow {
+  color: rgba(255,255,255,0.4);
+  font-size: 14px;
+  animation: floatDown 2s ease-in-out infinite;
+}
+
+@keyframes fadeIn { to { opacity: 1; } }
+@keyframes slideUp {
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes scrollWheel {
+  0%   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  70%  { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(0); }
+}
+@keyframes floatDown {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(8px); }
+}
+
+/* ============================================================
+   通用区域容器
+   ============================================================ */
+.section {
+  padding: 120px 24px;
+}
+.section-alt { background: var(--bg-sub); }
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.container-narrow { max-width: 960px; }
+
+.section-header { margin-bottom: 64px; }
+.section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.section-title-bar {
+  width: 2px;
+  height: 40px;
+  background: var(--accent-cyan);
+  flex-shrink: 0;
+}
+.section-title {
+  font-size: 32px;
+  font-weight: 300;
+  letter-spacing: 1px;
+}
+.section-subtitle {
+  margin-top: 16px;
+  font-size: 15px;
+  color: var(--text-tertiary);
+  font-weight: 300;
+  padding-left: 18px;
+}
+
+/* ============================================================
+   3. 项目概述区
+   ============================================================ */
+.overview-grid {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 48px;
+}
+.overview-label {
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text-quaternary);
+  padding-top: 6px;
+}
+.overview-text {
+  font-size: 18px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  font-weight: 300;
+}
+
+.stats-row {
+  margin-top: 80px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+.stat-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  border: var(--border-thin);
+  transition: transform 0.4s var(--ease-standard), border-color 0.4s, box-shadow 0.4s;
+}
+.stat-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(0,240,255,0.2);
+  box-shadow: 0 8px 32px rgba(0,240,255,0.08);
+}
+.stat-number {
+  font-size: clamp(36px, 4vw, 48px);
+  color: var(--accent-cyan);
+  font-weight: 200;
+  font-family: var(--font-en);
+  line-height: 1.1;
+}
+.stat-label {
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--text-tertiary);
+}
+
+/* ============================================================
+   4. 3D场景展示区 — Unity WebGL 嵌入
+   ============================================================ */
+.unity-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: #000;
+  position: relative;
+}
+
+.unity-container {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%; /* 16:9 响应式宽高比 */
+}
+.unity-canvas,
+.unity-fallback,
+.unity-loading {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#unity-canvas {
+  display: none; /* 加载完成后显示 */
+  cursor: none;  /* 使用自定义十字光标 */
+}
+
+/* 自定义十字瞄准光标 */
+.crosshair-cursor {
+  position: absolute;
+  width: 28px; height: 28px;
+  border: 1.5px solid var(--accent-cyan);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 30;
+  mix-blend-mode: difference;
+  transform: translate(-50%, -50%);
+  display: none;
+  transition: width 0.15s, height 0.15s;
+}
+.crosshair-cursor::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 4px; height: 4px;
+  background: var(--accent-cyan);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* 加载画面 */
+.unity-loading {
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  z-index: 20;
+  transition: opacity 0.5s;
+}
+.unity-loading.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.loading-ring {
+  width: 48px; height: 48px;
+  border: 2px solid rgba(0,240,255,0.2);
+  border-top-color: var(--accent-cyan);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  letter-spacing: 1px;
+}
+.loading-bar {
+  width: 240px;
+  height: 2px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.loading-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent-cyan);
+  transition: width 0.3s ease;
+}
+
+/* Unity 未构建时的占位预览 */
+.unity-fallback {
+  display: none; /* JS 检测加载失败时显示 */
+  z-index: 10;
+}
+.unity-fallback img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.6;
+}
+.unity-fallback-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.unity-fallback-mask span {
+  padding: 10px 24px;
+  border-radius: 100px;
+  background: rgba(13,13,13,0.8);
+  border: 1px solid rgba(255,255,255,0.15);
+  font-size: 13px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.5px;
+}
+
+/* 场景说明浮层 */
+.scene-hint {
+  position: absolute;
+  left: 24px; bottom: 24px;
+  z-index: 25;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background: rgba(13,13,13,0.7);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  border: var(--border-thin);
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+  letter-spacing: 0.5px;
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
+  pointer-events: none;
+}
+.scene-hint.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ============================================================
+   5. 交互演示区
+   ============================================================ */
+.interaction-grid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 32px;
+  align-items: stretch;
+}
+
+.interaction-preview {
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: var(--border-thin);
+  position: relative;
+  min-height: 420px;
+  background: #000;
+}
+.interaction-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  inset: 0;
+  transition: transform 0.6s var(--ease-out);
+}
+.interaction-preview:hover img { transform: scale(1.02); }
+.preview-caption {
+  position: absolute;
+  left: 20px; bottom: 20px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background: rgba(13,13,13,0.7);
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+  border: var(--border-thin);
+}
+
+/* 控制面板 */
+.control-panel {
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  padding: 32px;
+  border: var(--border-thin);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.panel-title {
+  font-size: 16px;
+  color: rgba(255,255,255,0.8);
+  font-weight: 400;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.control-label {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  margin-bottom: 12px;
+  display: block;
+}
+
+/* 驾驶模式按钮 */
+.mode-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.mode-btn {
+  padding: 16px 24px;
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text-tertiary);
+  font-size: 14px;
+  transition: background 0.3s, color 0.3s, border-color 0.3s, box-shadow 0.3s, transform 0.2s;
+}
+.mode-btn:active { transform: scale(0.96); }
+.mode-btn.active {
+  background: rgba(0,240,255,0.1);
+  color: var(--accent-cyan);
+  border-color: rgba(0,240,255,0.4);
+  box-shadow: 0 0 20px rgba(0,240,255,0.1);
+}
+
+/* 氛围灯颜色圆点 */
+.ambient-dots {
+  display: flex;
+  gap: 16px;
+}
+.ambient-dot {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  opacity: 0.6;
+  transition: opacity 0.2s, transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  padding: 0;
+}
+.ambient-dot:hover { opacity: 1; transform: scale(1.15); }
+.ambient-dot.active {
+  opacity: 1;
+  border-color: #FFFFFF;
+  box-shadow: 0 0 12px currentColor;
+}
+
+/* 空调 Toggle */
+.ac-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ac-toggle {
+  width: 56px; height: 30px;
+  border-radius: 100px;
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.12);
+  position: relative;
+  transition: background 0.3s var(--ease-standard);
+}
+.ac-toggle .knob {
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  transition: transform 0.3s var(--ease-standard);
+}
+.ac-toggle.on { background: var(--accent-cyan); }
+.ac-toggle.on .knob { transform: translateX(26px); }
+
+/* 车窗控制 */
+.window-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.window-btn {
+  padding: 12px 0;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text-tertiary);
+  font-size: 13px;
+  transition: border-color 0.3s, color 0.3s, transform 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.window-btn:active { transform: scale(0.96); }
+.window-btn:hover { border-color: rgba(0,240,255,0.3); color: var(--accent-cyan); }
+.window-bar {
+  width: 4px;
+  height: 24px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+.window-bar-fill {
+  position: absolute;
+  bottom: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--accent-cyan);
+  border-radius: 2px;
+  transition: height 0.8s var(--ease-standard);
+}
+
+/* 状态反馈条 */
+.status-bar {
+  background: rgba(0,240,255,0.05);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--accent-cyan);
+  border: 1px solid rgba(0,240,255,0.1);
+  transition: opacity 0.3s;
+}
+.status-bar.flash { animation: statusFlash 0.3s ease; }
+@keyframes statusFlash {
+  0% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+/* ============================================================
+   6. 技术实现区 — Accordion
+   ============================================================ */
+.accordion-list {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.accordion-item {
+  background: var(--bg-card);
+  border: var(--border-thin);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.accordion-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px;
+  font-size: 16px;
+  color: rgba(255,255,255,0.85);
+  font-weight: 400;
+  text-align: left;
+  transition: background 0.3s, border-radius 0.3s;
+}
+.accordion-header:hover { background: rgba(255,255,255,0.02); }
+.accordion-arrow {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  transition: transform 0.3s;
+}
+.accordion-item.open .accordion-arrow { transform: rotate(180deg); }
+
+.accordion-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.4s ease;
+}
+.accordion-item.open .accordion-body { grid-template-rows: 1fr; }
+.accordion-body-inner {
+  overflow: hidden;
+}
+.accordion-content {
+  padding: 0 24px 24px;
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.8;
+  font-weight: 300;
+}
+.accordion-content img {
+  margin-top: 20px;
+  border-radius: var(--radius-sm);
+  opacity: 0.8;
+  border: var(--border-thin);
+}
+
+/* 性能柱状图 */
+.perf-chart-wrap {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: center;
+}
+.perf-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  height: 200px;
+  padding: 0 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.perf-bar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  justify-content: flex-end;
+}
+.perf-value {
+  font-size: 14px;
+  color: var(--accent-cyan);
+  font-family: var(--font-en);
+  font-weight: 500;
+}
+.perf-bar {
+  width: 48px;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(to top, rgba(0,240,255,0.3), var(--accent-cyan));
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 0.8s var(--ease-out);
+}
+.perf-bar.grown { transform: scaleY(1); }
+.perf-bar.dim {
+  background: linear-gradient(to top, rgba(139,92,246,0.3), var(--accent-purple));
+}
+.perf-bar-label {
+  position: absolute;
+  bottom: -28px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.perf-bar-col { position: relative; }
+.perf-note {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  line-height: 1.8;
+}
+
+/* 代码块 */
+.code-block {
+  margin-top: 24px;
+  position: relative;
+  background: var(--bg-main);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  border: var(--border-thin);
+  overflow-x: auto;
+}
+.code-lang-tag {
+  position: absolute;
+  top: 12px; right: 12px;
+  background: rgba(0,240,255,0.1);
+  color: var(--accent-cyan);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: var(--font-en);
+  letter-spacing: 0.5px;
+}
+.code-block pre {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(255,255,255,0.8);
+}
+/* 简单语法高亮 */
+.tok-kw  { color: #FF7B72; }  /* 关键字 */
+.tok-str { color: #A5D6FF; }  /* 字符串 */
+.tok-cmt { color: #8B949E; }  /* 注释 */
+.tok-fn  { color: #D2A8FF; }  /* 函数名 */
+.tok-num { color: #79C0FF; }  /* 数字 */
+
+/* ============================================================
+   7. 页面底部
+   ============================================================ */
+.footer-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.footer-nav-btn {
+  padding: 20px 40px;
+  border-radius: 100px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  font-size: 14px;
+  color: var(--text-secondary);
+  transition: background 0.3s, border-color 0.3s, transform 0.3s;
+  display: inline-block;
+}
+.footer-nav-btn:hover {
+  background: rgba(0,240,255,0.08);
+  border-color: rgba(0,240,255,0.2);
+  transform: translateY(-2px);
+}
+.footer-copyright {
+  margin-top: 80px;
+  padding-top: 40px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--text-quaternary);
+}
+
+/* ============================================================
+   响应式
+   ============================================================ */
+@media (max-width: 1024px) {
+  .interaction-grid { grid-template-columns: 1fr; }
+  .interaction-preview { min-height: 320px; }
+  .perf-chart-wrap { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .nav { padding: 0 20px; }
+  .nav-links { gap: 20px; }
+  .section { padding: 80px 20px; }
+  .overview-grid { grid-template-columns: 1fr; gap: 24px; }
+  .stats-row { grid-template-columns: 1fr; }
+  .control-panel { padding: 24px; }
+  .mode-buttons { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .mode-btn { padding: 14px 8px; }
+  .footer-nav { flex-direction: column; }
+  .footer-nav-btn { text-align: center; }
+  .scene-hint { left: 12px; bottom: 12px; padding: 12px 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     1. 顶部导航栏
+     ============================================================ -->
+<nav class="nav" id="nav">
+  <!-- 【需替换】href 改为项目一首页实际路径 -->
+  <a href="index.html" class="nav-back">
+    <span class="arrow">←</span>
+    <span>返回首页</span>
+  </a>
+  <div class="nav-links">
+    <a href="#scene" class="nav-link" data-section="scene">3D场景</a>
+    <a href="#interaction" class="nav-link" data-section="interaction">交互演示</a>
+    <a href="#tech" class="nav-link" data-section="tech">技术实现</a>
+  </div>
+</nav>
+
+<!-- ============================================================
+     2. Hero 项目标题区
+     ============================================================ -->
+<header class="hero">
+  <span class="hero-tag">Unity 3D开发</span>
+  <h1 class="hero-title">车载HMI实时3D可视化系统</h1>
+  <p class="hero-subtitle">Unity URP渲染管线 | C#交互脚本 | 智能座舱实时动效</p>
+  <div class="hero-meta">
+    <span>2024</span>
+    <span>个人项目</span>
+    <span>Unity3D</span>
+    <span>实时渲染</span>
+  </div>
+  <div class="hero-scroll">
+    <div class="mouse-icon"></div>
+    <span class="scroll-arrow">↓</span>
+  </div>
+</header>
+
+<!-- ============================================================
+     3. 项目概述区
+     ============================================================ -->
+<section class="section">
+  <div class="container container-narrow reveal">
+    <div class="overview-grid">
+      <div class="overview-label">项目概述</div>
+      <!-- 【占位】项目概述，约80字，替换为实际项目描述 -->
+      <p class="overview-text">
+        这是一个基于 Unity URP（Universal Render Pipeline）打造的智能座舱实时3D可视化Demo。
+        项目实现了座舱环境的高保真实时渲染、多驾驶模式动态切换、氛围灯联动与空调车窗等座舱交互控制，
+        并通过LOD分级、遮挡剔除与GPU Instancing等性能优化手段，在中端硬件上稳定输出60FPS的流畅体验，
+        探索了游戏引擎技术在车机HMI领域的落地路径。
+      </p>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card reveal">
+        <div class="stat-number">60 FPS</div>
+        <div class="stat-label">中端硬件稳定帧率</div>
+      </div>
+      <div class="stat-card reveal" style="transition-delay: 0.15s">
+        <div class="stat-number">3种驾驶模式</div>
+        <div class="stat-label">舒适 / 运动 / 节能联动</div>
+      </div>
+      <div class="stat-card reveal" style="transition-delay: 0.3s">
+        <div class="stat-number">URP渲染管线</div>
+        <div class="stat-label">体积光 + 实时反射探针</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     4. 3D场景展示区（Unity WebGL 核心嵌入区）
+     ============================================================ -->
+<section class="section section-alt" id="scene">
+  <div class="container reveal">
+    <div class="section-header">
+      <div class="section-title-wrap">
+        <span class="section-title-bar"></span>
+        <h2 class="section-title">3D场景展示</h2>
+      </div>
+      <p class="section-subtitle">Unity WebGL实时渲染 · 智能座舱环境</p>
+    </div>
+
+    <div class="unity-wrapper">
+      <div class="unity-container" id="unity-container">
+
+        <!-- Unity WebGL Canvas（加载完成后显示） -->
+        <canvas id="unity-canvas" class="unity-canvas"></canvas>
+
+        <!-- 【占位】Unity 未构建时的静态预览（JS加载失败时显示）
+             建议图片尺寸 1920x1080 -->
+        <div class="unity-fallback" id="unity-fallback">
+          <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Futuristic%20car%20smart%20cockpit%20interior%20with%20large%20panoramic%20HMI%20display%20screens%2C%20glowing%20cyan%20ambient%20lighting%20strips%2C%20dark%20luxury%20leather%20dashboard%2C%20sci-fi%20minimalist%20design%2C%20photorealistic%203D%20render%2C%20cinematic%20lighting%2C%20high%20detail&image_size=landscape_16_9" alt="智能座舱3D场景预览">
+          <div class="unity-fallback-mask">
+            <span>请构建 Unity WebGL 并替换 Build 路径</span>
+          </div>
+        </div>
+
+        <!-- 自定义加载画面（替代Unity默认logo） -->
+        <div class="unity-loading" id="unity-loading">
+          <div class="loading-ring"></div>
+          <div class="loading-text">Loading 3D Scene...</div>
+          <div class="loading-bar">
+            <div class="loading-bar-fill" id="loading-bar-fill"></div>
+          </div>
+        </div>
+
+        <!-- 自定义十字瞄准光标 -->
+        <div class="crosshair-cursor" id="crosshair"></div>
+
+        <!-- 场景说明浮层 -->
+        <div class="scene-hint" id="scene-hint">
+          鼠标左键旋转视角 · 滚轮缩放 · 右键平移
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     5. 交互演示区
+     ============================================================ -->
+<section class="section" id="interaction">
+  <div class="container reveal">
+    <div class="section-header">
+      <div class="section-title-wrap">
+        <span class="section-title-bar"></span>
+        <h2 class="section-title">交互演示</h2>
+      </div>
+      <p class="section-subtitle">驾驶模式切换与座舱交互控制</p>
+    </div>
+
+    <div class="interaction-grid">
+      <!-- 左侧：焦点特写图（【占位】可替换为场景截图/视频，建议 1600x900） -->
+      <div class="interaction-preview">
+        <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Close-up%20detail%20of%20luxury%20electric%20car%20center%20console%20with%20glowing%20touchscreen%20HMI%20interface%20showing%20driving%20mode%20selection%2C%20cyan%20neon%20accents%20on%20dark%20surfaces%2C%20premium%20automotive%20interior%20photography%2C%20shallow%20depth%20of%20field%2C%20cinematic&image_size=landscape_4_3" alt="座舱交互特写">
+        <div class="preview-caption">驾驶模式联动 · 氛围灯 / 仪表主题实时切换</div>
+      </div>
+
+      <!-- 右侧：控制面板 -->
+      <div class="control-panel">
+        <div class="panel-title">座舱控制</div>
+
+        <!-- 驾驶模式切换 -->
+        <div>
+          <span class="control-label">驾驶模式</span>
+          <div class="mode-buttons">
+            <button class="mode-btn active" data-mode="舒适">舒适</button>
+            <button class="mode-btn" data-mode="运动">运动</button>
+            <button class="mode-btn" data-mode="节能">节能</button>
+          </div>
+        </div>
+
+        <!-- 氛围灯控制 -->
+        <div>
+          <span class="control-label">氛围灯</span>
+          <div class="ambient-dots">
+            <button class="ambient-dot active" data-color="#00F0FF" data-name="科技青" style="background:#00F0FF; color:#00F0FF;" aria-label="科技青"></button>
+            <button class="ambient-dot" data-color="#FF6B00" data-name="活力橙" style="background:#FF6B00; color:#FF6B00;" aria-label="活力橙"></button>
+            <button class="ambient-dot" data-color="#8B5CF6" data-name="数据紫" style="background:#8B5CF6; color:#8B5CF6;" aria-label="数据紫"></button>
+            <button class="ambient-dot" data-color="#FFFFFF" data-name="纯净白" style="background:#FFFFFF; color:#FFFFFF;" aria-label="纯净白"></button>
+            <button class="ambient-dot" data-color="#EF4444" data-name="警示红" style="background:#EF4444; color:#EF4444;" aria-label="警示红"></button>
+          </div>
+        </div>
+
+        <!-- 空调开关 -->
+        <div class="ac-row">
+          <span class="control-label" style="margin-bottom:0">空调</span>
+          <button class="ac-toggle on" id="ac-toggle" aria-label="空调开关">
+            <span class="knob"></span>
+          </button>
+        </div>
+
+        <!-- 车窗控制 -->
+        <div>
+          <span class="control-label">车窗</span>
+          <div class="window-buttons">
+            <button class="window-btn" data-window="左前">左前<span class="window-bar"><span class="window-bar-fill"></span></span></button>
+            <button class="window-btn" data-window="右前">右前<span class="window-bar"><span class="window-bar-fill"></span></span></button>
+            <button class="window-btn" data-window="左后">左后<span class="window-bar"><span class="window-bar-fill"></span></span></button>
+            <button class="window-btn" data-window="右后">右后<span class="window-bar"><span class="window-bar-fill"></span></span></button>
+          </div>
+        </div>
+
+        <!-- 状态反馈条 -->
+        <div class="status-bar" id="status-bar">当前模式：舒适模式 · 氛围灯：科技青 · 空调：开启</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     6. 技术实现区
+     ============================================================ -->
+<section class="section section-alt" id="tech">
+  <div class="container reveal">
+    <div class="section-header" style="text-align:left;">
+      <div class="section-title-wrap">
+        <span class="section-title-bar"></span>
+        <h2 class="section-title">技术实现</h2>
+      </div>
+      <p class="section-subtitle">渲染管线 · 性能优化 · 代码架构</p>
+    </div>
+
+    <div class="accordion-list">
+      <!-- 面板1：渲染管线架构 -->
+      <div class="accordion-item open">
+        <button class="accordion-header">
+          <span>渲染管线架构</span>
+          <span class="accordion-arrow">▾</span>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-body-inner">
+            <div class="accordion-content">
+              <!-- 【占位】渲染管线说明文字 -->
+              项目基于 URP（Universal Render Pipeline）构建，采用后处理体积光（Volumetric Lighting）
+              营造座舱氛围灯的空气感，配合 Baked GI 烘焙全局光照与 Realtime Reflection Probes
+              实时反射探针，在保证性能的前提下呈现车漆与屏幕玻璃材质的高光细节。
+              UI层使用 Render Texture 将HMI界面渲染至曲面屏模型，实现屏显与3D场景的无缝融合。
+              <!-- 【占位】架构图，建议尺寸 1200x600 -->
+              <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Technical%20diagram%20of%20Unity%20URP%20render%20pipeline%20architecture%20for%20automotive%20HMI%2C%20dark%20blueprint%20style%2C%20glowing%20cyan%20flow%20lines%20connecting%20render%20pass%20nodes%2C%20minimalist%20engineering%20schematic%2C%20dark%20background&image_size=landscape_16_9" alt="渲染管线架构图">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 面板2：性能优化策略 -->
+      <div class="accordion-item">
+        <button class="accordion-header">
+          <span>性能优化策略</span>
+          <span class="accordion-arrow">▾</span>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-body-inner">
+            <div class="accordion-content">
+              <div class="perf-chart-wrap">
+                <!-- CSS柱状图：Draw Call 数据（【占位】320 / 180 / 95，替换为实测数据） -->
+                <div class="perf-chart" id="perf-chart">
+                  <div class="perf-bar-col">
+                    <span class="perf-value" data-target="320">0</span>
+                    <div class="perf-bar dim" style="height: 100%;"></div>
+                    <span class="perf-bar-label">优化前</span>
+                  </div>
+                  <div class="perf-bar-col">
+                    <span class="perf-value" data-target="180">0</span>
+                    <div class="perf-bar" style="height: 56%;"></div>
+                    <span class="perf-bar-label">优化中</span>
+                  </div>
+                  <div class="perf-bar-col">
+                    <span class="perf-value" data-target="95">0</span>
+                    <div class="perf-bar" style="height: 30%;"></div>
+                    <span class="perf-bar-label">优化后</span>
+                  </div>
+                </div>
+                <p class="perf-note">
+                  通过LOD分级、Occlusion Culling遮挡剔除与GPU Instancing合批，
+                  将Draw Call从320降至95，帧率稳定在60FPS。
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 面板3：核心代码片段 -->
+      <div class="accordion-item">
+        <button class="accordion-header">
+          <span>核心代码片段</span>
+          <span class="accordion-arrow">▾</span>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-body-inner">
+            <div class="accordion-content">
+              <!-- 【占位】C# 驾驶模式切换脚本，替换为实际代码 -->
+              <div class="code-block reveal">
+                <span class="code-lang-tag">C#</span>
+<pre><code><span class="tok-cmt">// DriveModeController.cs — 驾驶模式切换控制器</span>
+<span class="tok-cmt">// 挂在场景中的 "HMIController" GameObject 上，供 JS 通过 SendMessage 调用</span>
+<span class="tok-kw">using</span> UnityEngine;
+
+<span class="tok-kw">public class</span> <span class="tok-fn">DriveModeController</span> : MonoBehaviour
+{
+    <span class="tok-kw">public</span> Material cockpitEmissionMat;   <span class="tok-cmt">// 座舱氛围灯材质</span>
+    <span class="tok-kw">public</span> Light[] ambientLights;         <span class="tok-cmt">// 氛围灯灯组</span>
+
+    <span class="tok-cmt">// 供网页 JS 调用：unityInstance.SendMessage("HMIController", "SetDriveMode", "Sport")</span>
+    <span class="tok-kw">public void</span> <span class="tok-fn">SetDriveMode</span>(<span class="tok-kw">string</span> mode)
+    {
+        <span class="tok-kw">switch</span> (mode)
+        {
+            <span class="tok-kw">case</span> <span class="tok-str">"Comfort"</span>:
+                <span class="tok-fn">ApplyMode</span>(Color.cyan, <span class="tok-num">0.6f</span>);
+                <span class="tok-kw">break</span>;
+            <span class="tok-kw">case</span> <span class="tok-str">"Sport"</span>:
+                <span class="tok-fn">ApplyMode</span>(<span class="tok-kw">new</span> Color(<span class="tok-num">1f</span>, <span class="tok-num">0.42f</span>, <span class="tok-num">0f</span>), <span class="tok-num">1.2f</span>);
+                <span class="tok-kw">break</span>;
+            <span class="tok-kw">case</span> <span class="tok-str">"Eco"</span>:
+                <span class="tok-fn">ApplyMode</span>(Color.green, <span class="tok-num">0.35f</span>);
+                <span class="tok-kw">break</span>;
+        }
+    }
+
+    <span class="tok-kw">void</span> <span class="tok-fn">ApplyMode</span>(Color c, <span class="tok-kw">float</span> intensity)
+    {
+        cockpitEmissionMat.<span class="tok-fn">SetColor</span>(<span class="tok-str">"_EmissionColor"</span>, c * intensity);
+        <span class="tok-kw">foreach</span> (<span class="tok-kw">var</span> l <span class="tok-kw">in</span> ambientLights) { l.color = c; l.intensity = intensity; }
+    }
+}</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     7. 页面底部
+     ============================================================ -->
+<footer class="section">
+  <div class="container reveal">
+    <div class="footer-nav">
+      <!-- 【需替换】改为项目一实际路径 -->
+      <a href="project1.html" class="footer-nav-btn">← 项目一：智能座舱HMI交互设计</a>
+      <!-- 【需替换】改为项目三实际路径，若无项目三可改为 index.html（返回首页） -->
+      <a href="index.html" class="footer-nav-btn">项目三：航空座舱交互迁移 →</a>
+    </div>
+    <!-- 【占位】版权与联系方式 -->
+    <div class="footer-copyright">
+      <span>© 2024 YourName. All rights reserved.</span>
+      <span>contact@example.com</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   全局状态
+   ============================================================ */
+var unityInstance = null; // Unity 实例引用（加载成功后赋值）
+
+/* ============================================================
+   1. 导航栏：滚动样式 + 锚点高亮
+   ============================================================ */
+(function initNav() {
+  var nav = document.getElementById('nav');
+  var links = document.querySelectorAll('.nav-link');
+  var sections = ['scene', 'interaction', 'tech'].map(function (id) {
+    return document.getElementById(id);
+  });
+
+  window.addEventListener('scroll', function () {
+    // 滚动>100px：毛玻璃背景
+    nav.classList.toggle('scrolled', window.scrollY > 100);
+
+    // 当前区域高亮
+    var current = '';
+    sections.forEach(function (sec) {
+      if (sec && window.scrollY >= sec.offsetTop - 200) current = sec.id;
+    });
+    links.forEach(function (l) {
+      l.classList.toggle('active', l.dataset.section === current);
+    });
+  }, { passive: true });
+})();
+
+/* ============================================================
+   2. 滚动触发动画（Intersection Observer）
+   ============================================================ */
+(function initReveal() {
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.reveal').forEach(function (el) {
+    observer.observe(el);
+  });
+})();
+
+/* ============================================================
+   3. Unity WebGL 嵌入（核心）
+   ============================================================
+   【需替换】构建 Unity WebGL 后：
+   1. 将 Unity 导出的 Build 文件夹放到本页面同级目录
+   2. 将下方 YOUR_BUILD 替换为实际的构建文件名
+      （例如 Build/CarHMI.loader.js，则 YOUR_BUILD = "CarHMI"）
+   3. 若构建时未开启压缩，去掉文件名中的 .gz 后缀
+   ============================================================ */
+(function initUnity() {
+  var canvas = document.getElementById('unity-canvas');
+  var loadingEl = document.getElementById('unity-loading');
+  var loadingFill = document.getElementById('loading-bar-fill');
+  var fallbackEl = document.getElementById('unity-fallback');
+  var sceneHint = document.getElementById('scene-hint');
+
+  // ---------- 占位配置，后续替换为实际 build 路径 ----------
+  var buildUrl = "Build"; // Unity构建输出文件夹路径
+  var loaderUrl = buildUrl + "/YOUR_BUILD.loader.js";
+  var config = {
+    dataUrl: buildUrl + "/YOUR_BUILD.data.gz",
+    frameworkUrl: buildUrl + "/YOUR_BUILD.framework.js.gz",
+    codeUrl: buildUrl + "/YOUR_BUILD.wasm.gz",
+    streamingAssetsUrl: "StreamingAssets",
+    companyName: "YourName",
+    productName: "CarHMI_3D_Demo",
+    productVersion: "1.0",
+  };
+  // ----------------------------------------------------------
+
+  // 显示静态占位预览（构建文件缺失 / 加载失败时调用）
+  function showFallback() {
+    loadingEl.classList.add('hidden');
+    fallbackEl.style.display = 'block';
+    // 占位状态下也展示操作提示浮层
+    setTimeout(function () { sceneHint.classList.add('visible'); }, 1000);
+  }
+
+  // 动态加载 Unity loader 脚本
+  var script = document.createElement('script');
+  script.src = loaderUrl;
+
+  script.onload = function () {
+    // createUnityInstance(canvas, config, onProgress)
+    createUnityInstance(canvas, config, function (progress) {
+      // 加载进度回调：更新进度条宽度（progress: 0 ~ 1）
+      loadingFill.style.width = Math.round(progress * 100) + '%';
+    }).then(function (instance) {
+      // 加载完成回调
+      unityInstance = instance;
+
+      // 加载画面淡出（opacity 1→0, 0.5s，CSS transition）
+      loadingEl.classList.add('hidden');
+
+      // 显示 WebGL 画布
+      canvas.style.display = 'block';
+
+      // 延迟 1s 显示场景说明浮层（从左侧滑入）
+      setTimeout(function () {
+        sceneHint.classList.add('visible');
+      }, 1000);
+
+      console.log('[Unity] WebGL 实例加载完成');
+    }).catch(function (message) {
+      console.error('[Unity] 加载失败：', message);
+      showFallback();
+    });
+  };
+
+  // loader.js 不存在（尚未构建）时，展示占位预览
+  script.onerror = function () {
+    console.warn('[Unity] 未找到构建文件 ' + loaderUrl + '，显示占位预览。请构建 Unity WebGL 并替换 Build 路径。');
+    showFallback();
+  };
+
+  document.body.appendChild(script);
+
+  /* ----------------------------------------------------------
+     自定义十字瞄准光标（悬停在WebGL画布上时）
+     ---------------------------------------------------------- */
+  var crosshair = document.getElementById('crosshair');
+  var container = document.getElementById('unity-container');
+
+  container.addEventListener('mouseenter', function () {
+    if (canvas.style.display === 'block') crosshair.style.display = 'block';
+  });
+  container.addEventListener('mousemove', function (e) {
+    var rect = container.getBoundingClientRect();
+    crosshair.style.left = (e.clientX - rect.left) + 'px';
+    crosshair.style.top = (e.clientY - rect.top) + 'px';
+  });
+  container.addEventListener('mouseleave', function () {
+    crosshair.style.display = 'none';
+  });
+})();
+
+/* ============================================================
+   SendMessage 封装
+   【需替换】将 "HMIController" 替换为 Unity 场景中实际接收消息的
+   GameObject 名称，方法名与 C# 脚本中的 public 方法保持一致。
+   ============================================================ */
+function sendToUnity(method, value) {
+  if (unityInstance) {
+    unityInstance.SendMessage("HMIController", method, value);
+  } else {
+    // 占位：Unity未加载时输出日志，便于调试交互逻辑
+    console.log('[SendMessage 占位] GameObject: HMIController | 方法: ' + method + ' | 参数: ' + value);
+  }
+}
+
+/* ============================================================
+   4. 交互演示区：控制面板逻辑
+   ============================================================ */
+(function initControlPanel() {
+  var statusBar = document.getElementById('status-bar');
+  var state = { mode: '舒适模式', ambient: '科技青', ac: '开启' };
+
+  function updateStatus() {
+    statusBar.textContent = '当前模式：' + state.mode + ' · 氛围灯：' + state.ambient + ' · 空调：' + state.ac;
+    // 闪烁高亮反馈
+    statusBar.classList.remove('flash');
+    void statusBar.offsetWidth; // 触发重绘以重启动画
+    statusBar.classList.add('flash');
+  }
+
+  /* ---------- 驾驶模式切换 ---------- */
+  // 【需替换】SendMessage 参数值（Comfort/Sport/Eco）需与 C# 脚本中 case 匹配
+  var modeMap = { '舒适': 'Comfort', '运动': 'Sport', '节能': 'Eco' };
+  document.querySelectorAll('.mode-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.mode-btn').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      state.mode = btn.dataset.mode + '模式';
+      sendToUnity('SetDriveMode', modeMap[btn.dataset.mode]); // 【需替换】方法名
+      updateStatus();
+    });
+  });
+
+  /* ---------- 氛围灯控制 ---------- */
+  document.querySelectorAll('.ambient-dot').forEach(function (dot) {
+    dot.addEventListener('click', function () {
+      document.querySelectorAll('.ambient-dot').forEach(function (d) { d.classList.remove('active'); });
+      dot.classList.add('active');
+      state.ambient = dot.dataset.name;
+      sendToUnity('SetAmbientColor', dot.dataset.color); // 【需替换】方法名（C#端解析 hex 颜色）
+      updateStatus();
+    });
+  });
+
+  /* ---------- 空调开关 ---------- */
+  var acToggle = document.getElementById('ac-toggle');
+  acToggle.addEventListener('click', function () {
+    var isOn = acToggle.classList.toggle('on');
+    state.ac = isOn ? '开启' : '关闭';
+    sendToUnity('SetAirCondition', isOn ? '1' : '0'); // 【需替换】方法名（SendMessage 参数仅支持 string/number）
+    updateStatus();
+  });
+
+  /* ---------- 车窗控制 ---------- */
+  document.querySelectorAll('.window-btn').forEach(function (btn) {
+    var fill = btn.querySelector('.window-bar-fill');
+    var isUp = true;
+    fill.style.height = '100%';
+    btn.addEventListener('click', function () {
+      isUp = !isUp;
+      fill.style.height = isUp ? '100%' : '12%'; // 升降进度动画
+      sendToUnity('SetWindow', btn.dataset.window + ':' + (isUp ? 'up' : 'down')); // 【需替换】方法名
+    });
+  });
+})();
+
+/* ============================================================
+   5. 技术实现区：Accordion
+   ============================================================ */
+(function initAccordion() {
+  document.querySelectorAll('.accordion-header').forEach(function (header) {
+    header.addEventListener('click', function () {
+      header.parentElement.classList.toggle('open');
+    });
+  });
+})();
+
+/* ============================================================
+   6. 性能柱状图：生长动画 + 数字滚动
+   ============================================================ */
+(function initPerfChart() {
+  var chart = document.getElementById('perf-chart');
+  if (!chart) return;
+
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (!entry.isIntersecting) return;
+      observer.unobserve(chart);
+
+      // 柱子依次生长（stagger 0.2s）
+      var bars = chart.querySelectorAll('.perf-bar');
+      bars.forEach(function (bar, i) {
+        setTimeout(function () { bar.classList.add('grown'); }, i * 200);
+      });
+
+      // 数字从0滚动到目标值（计数动画）
+      chart.querySelectorAll('.perf-value').forEach(function (el, i) {
+        var target = parseInt(el.dataset.target, 10);
+        var duration = 1000;
+        var start = null;
+        setTimeout(function () {
+          function step(ts) {
+            if (!start) start = ts;
+            var p = Math.min((ts - start) / duration, 1);
+            el.textContent = Math.round(target * p);
+            if (p < 1) requestAnimationFrame(step);
+          }
+          requestAnimationFrame(step);
+        }, i * 200);
+      });
+    });
+  }, { threshold: 0.4 });
+
+  observer.observe(chart);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>从驾驶舱到座舱：航空HMI交互原则的迁移研究</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&family=Noto+Serif+SC:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   CSS 变量定义
+   ============================================================ */
+:root {
+  --bg-primary: #0D0D0D;
+  --bg-secondary: #0A0A0A;
+  --card: #141414;
+  --card-2: #1A1A1A;
+  --card-hl: #1E1E1E;
+  --cyan: #00F0FF;          /* 科技青：数据高亮、激活态 */
+  --gold: #C9A96E;          /* 学术金：引用标记、重要结论 */
+  --gray: #6B7280;          /* 中性灰：辅助文字 */
+  --red: #EF4444;           /* 紧急级告警 */
+  --border-faint: rgba(255,255,255,0.05);
+  --text-85: rgba(255,255,255,0.85);
+  --text-75: rgba(255,255,255,0.75);
+  --text-65: rgba(255,255,255,0.65);
+  --text-50: rgba(255,255,255,0.5);
+  --text-40: rgba(255,255,255,0.4);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --font-sans: 'Inter', -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-serif: 'Noto Serif SC', Georgia, serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-85);
+  font-family: var(--font-sans);
+  font-weight: 300;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  animation: pageIn 0.5s ease-out;   /* 页面进入：沉稳淡入 */
+  overflow-x: hidden;
+}
+
+@keyframes pageIn { from { opacity: 0; } to { opacity: 1; } }
+
+::selection { background: rgba(0,240,255,0.2); }
+
+a { color: inherit; text-decoration: none; }
+img { display: block; max-width: 100%; }
+
+.container { max-width: 1200px; margin: 0 auto; padding: 0 48px; }
+
+/* ============================================================
+   顶部导航栏（固定 64px）
+   ============================================================ */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 64px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 48px;
+  transition: background 0.4s, border-color 0.4s, backdrop-filter 0.4s;
+  border-bottom: 1px solid transparent;
+}
+.nav.scrolled {
+  background: rgba(13,13,13,0.7);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border-bottom-color: var(--border-faint);
+}
+.nav-back {
+  font-size: 14px; color: var(--text-50); letter-spacing: 0.5px;
+  transition: color 0.3s;
+}
+.nav-back:hover { color: var(--cyan); }
+.nav-links { display: flex; gap: 36px; }
+.nav-links a {
+  position: relative;
+  font-size: 13px; color: var(--text-50); letter-spacing: 1px;
+  padding: 4px 0;
+  transition: color 0.3s;
+}
+.nav-links a::after {
+  content: '';
+  position: absolute; left: 0; bottom: -2px;
+  width: 100%; height: 1px;
+  background: var(--cyan);
+  transform: scaleX(0); transform-origin: left;
+  transition: transform 0.35s var(--ease-out);
+}
+.nav-links a:hover { color: var(--text-85); }
+.nav-links a.active { color: var(--cyan); }
+.nav-links a.active::after { transform: scaleX(1); }
+
+/* ============================================================
+   Hero 项目标题区（100vh，纯黑，克制）
+   ============================================================ */
+.hero {
+  min-height: 100vh;
+  background: #000;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center;
+  padding: 0 24px;
+  position: relative;
+}
+.hero > * { animation: heroIn 1s ease-out both; }
+.hero .tag { animation-delay: 0.1s; }
+.hero h1 { animation-delay: 0.25s; }
+.hero .subtitle { animation-delay: 0.4s; }
+.hero .meta { animation-delay: 0.55s; }
+@keyframes heroIn {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.hero .tag {
+  display: inline-block;
+  font-size: 12px; letter-spacing: 2px;
+  color: var(--gold);
+  background: rgba(201,169,110,0.1);
+  border: 1px solid rgba(201,169,110,0.3);
+  border-radius: 100px;
+  padding: 8px 20px;
+  margin-bottom: 40px;
+}
+.hero h1 {
+  font-size: clamp(28px, 4.5vw, 56px);
+  font-weight: 300;
+  letter-spacing: 1px;
+  color: #fff;
+  line-height: 1.4;
+  max-width: 900px;
+}
+.hero .subtitle {
+  margin-top: 24px;
+  font-size: 16px; font-weight: 400;
+  color: var(--text-50);
+  letter-spacing: 0.5px;
+}
+.hero .meta {
+  margin-top: 48px;
+  display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+}
+.hero .meta span {
+  font-size: 12px; color: var(--text-40);
+  border: 0.5px solid rgba(255,255,255,0.12);
+  border-radius: 100px;
+  padding: 6px 16px;
+  letter-spacing: 1px;
+}
+/* 克制的滚动指示：细竖线循环延伸 */
+.scroll-hint {
+  position: absolute; bottom: 48px; left: 50%;
+  width: 1px; height: 40px;
+  background: rgba(255,255,255,0.2);
+  transform: translateX(-50%);
+  animation: scrollLine 2s ease-in-out infinite;
+  transform-origin: top;
+}
+@keyframes scrollLine {
+  0% { transform: translateX(-50%) scaleY(0); transform-origin: top; }
+  50% { transform: translateX(-50%) scaleY(1); transform-origin: top; }
+  51% { transform-origin: bottom; }
+  100% { transform: translateX(-50%) scaleY(0); transform-origin: bottom; }
+}
+
+/* ============================================================
+   章节通用结构
+   ============================================================ */
+.section { padding: 140px 0; position: relative; }
+.section.alt { background: var(--bg-secondary); }
+
+.section-grid {
+  display: grid;
+  grid-template-columns: 30% 1fr;
+  gap: 64px;
+}
+/* 左侧 sticky 章节头 */
+.section-head { position: sticky; top: 120px; align-self: start; }
+.sec-num {
+  font-size: 72px; font-weight: 200;
+  color: rgba(255,255,255,0.04);
+  line-height: 1;
+  user-select: none;
+  will-change: transform;   /* JS 视差 */
+}
+.sec-title {
+  font-family: var(--font-serif);   /* 衬线点缀，增加学术感 */
+  font-size: 24px; font-weight: 400;
+  color: #fff;
+  margin-top: 16px;
+}
+.sec-rule {
+  width: 40px; height: 1px;
+  background: var(--gold);
+  margin: 24px 0;
+}
+.sec-desc {
+  font-size: 14px; color: var(--text-50);
+  line-height: 1.8;
+  max-width: 260px;
+}
+
+/* ============================================================
+   滚动触发动画（通用）
+   ============================================================ */
+.reveal {
+  opacity: 0;
+  transform: translateY(50px);
+  transition: opacity 1s var(--ease-out), transform 1s var(--ease-out);
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+.slide-left  { opacity: 0; transform: translateX(-30px); transition: opacity 1s var(--ease-out), transform 1s var(--ease-out); }
+.slide-right { opacity: 0; transform: translateX(30px);  transition: opacity 1s var(--ease-out), transform 1s var(--ease-out); }
+.slide-left.visible, .slide-right.visible { opacity: 1; transform: translateX(0); }
+.stagger > *:nth-child(1) { transition-delay: 0s; }
+.stagger > *:nth-child(2) { transition-delay: 0.15s; }
+.stagger > *:nth-child(3) { transition-delay: 0.3s; }
+.stagger > *:nth-child(4) { transition-delay: 0.45s; }
+.stagger > *:nth-child(5) { transition-delay: 0.6s; }
+.delay-data { transition-delay: 0.3s; }  /* 数据图表延迟出现 */
+
+/* ============================================================
+   01 研究背景
+   ============================================================ */
+.intro-text {
+  font-size: 18px; line-height: 1.9;
+  color: var(--text-75);
+  margin-bottom: 48px;
+}
+/* 引用块：左边框生长动画 */
+.quote-block {
+  position: relative;
+  background: rgba(201,169,110,0.03);
+  border-radius: 0 8px 8px 0;
+  padding: 24px 32px;
+  margin-bottom: 56px;
+}
+.quote-block::before {
+  content: '';
+  position: absolute; left: 0; top: 0;
+  width: 3px; height: 100%;
+  background: var(--gold);
+  border-radius: 3px 0 0 3px;
+  transform: scaleY(0); transform-origin: top;
+  transition: transform 0.6s var(--ease-out);
+}
+.quote-block.visible::before { transform: scaleY(1); }
+.quote-block p {
+  font-style: italic;
+  font-size: 16px;
+  color: var(--text-65);
+  line-height: 1.9;
+}
+
+/* 文献综述卡片 */
+.lit-list { display: flex; flex-direction: column; gap: 24px; margin-bottom: 56px; }
+.lit-card {
+  position: relative;
+  background: var(--card);
+  border: 0.5px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 28px;
+  transition: transform 0.4s var(--ease-out);
+  overflow: hidden;
+}
+.lit-card::before {
+  content: '';
+  position: absolute; left: 0; top: 0;
+  width: 2px; height: 0;
+  background: var(--gold);
+  transition: height 0.3s var(--ease-out);
+}
+.lit-card:hover { transform: translateX(4px); }
+.lit-card:hover::before { height: 100%; }
+.lit-card .ref-num {
+  color: var(--gold);
+  font-size: 12px;
+  margin-right: 8px;
+  vertical-align: super;
+}
+.lit-card h3 {
+  display: inline;
+  font-size: 16px; font-weight: 500;
+  color: var(--text-85);
+}
+.lit-card p {
+  margin-top: 12px;
+  font-size: 14px; color: var(--text-50);
+  line-height: 1.7;
+}
+
+/* 研究缺口总结 */
+.gap-summary {
+  background: rgba(0,240,255,0.03);
+  border-left: 2px solid var(--cyan);
+  border-radius: 8px;
+  padding: 20px 24px;
+  font-size: 14px; color: var(--text-65);
+  line-height: 1.8;
+}
+
+/* ============================================================
+   02 理论框架：对比矩阵
+   ============================================================ */
+.matrix { position: relative; margin-top: 24px; }
+.matrix-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  position: relative;
+}
+/* 中间 1px 渐变竖线 + 扫光 */
+.matrix-cols::before {
+  content: '';
+  position: absolute; left: 50%; top: 0;
+  width: 1px; height: 100%;
+  background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.1), transparent);
+}
+.matrix-cols::after {
+  content: '';
+  position: absolute; left: 50%; top: 0;
+  width: 1px; height: 80px;
+  background: linear-gradient(to bottom, transparent, rgba(0,240,255,0.5), transparent);
+  transform: translateY(-80px);
+  opacity: 0;
+}
+.matrix-cols.visible::after {
+  opacity: 1;
+  animation: scanline 2.4s var(--ease-out) 0.3s forwards;
+}
+@keyframes scanline {
+  from { transform: translateY(-80px); }
+  to { transform: translateY(100vh); opacity: 0; }
+}
+.col-head { text-align: center; margin-bottom: 16px; }
+.col-head svg { width: 40px; height: 40px; margin: 0 auto 16px; display: block; }
+.col-head h3 {
+  font-size: 18px; font-weight: 400; color: #fff;
+  letter-spacing: 2px;
+}
+/* 维度标签：居中横跨两栏 */
+.dim-label {
+  grid-column: 1 / -1;
+  justify-self: center;
+  background: rgba(255,255,255,0.03);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 12px; color: var(--text-50);
+  letter-spacing: 2px;
+  margin: 32px 0 0;
+  transition: color 0.3s;
+  position: relative; z-index: 1;
+}
+.dim-row { display: contents; }
+.dim-card {
+  background: var(--card);
+  border: 0.5px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  padding: 20px;
+  font-size: 14px; color: var(--text-65);
+  line-height: 1.8;
+  margin-top: 16px;
+  transition: border-color 0.3s;
+}
+.dim-row:hover .dim-card { border-color: rgba(0,240,255,0.15); }
+.dim-row:hover .dim-label { color: var(--cyan); }
+/* 迁移箭头 */
+.migrate-arrow {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: rgba(0,240,255,0.3);
+  font-size: 20px;
+  margin-top: 12px;
+  user-select: none;
+}
+
+/* 理论模型图 */
+.figure-wrap { margin-top: 100px; text-align: center; }
+.figure-wrap img {
+  max-width: 900px; width: 100%;
+  margin: 0 auto;
+  border-radius: 16px;
+  border: 0.5px solid rgba(255,255,255,0.06);
+  transition: transform 0.8s var(--ease-out);
+}
+.figure-wrap img:hover { transform: scale(1.01); }
+.figure-wrap figcaption {
+  margin-top: 20px;
+  font-size: 12px; font-style: italic;
+  color: var(--text-40);
+  letter-spacing: 0.5px;
+}
+
+/* ============================================================
+   03 设计概念：分级告警卡片
+   ============================================================ */
+.concept-sub {
+  font-size: 20px; font-weight: 400; color: var(--text-75);
+  margin-bottom: 64px; letter-spacing: 1px;
+}
+.alert-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-bottom: 100px;
+}
+.alert-card {
+  background: var(--card);
+  border-radius: 12px;
+  border: 0.5px solid rgba(255,255,255,0.06);
+  overflow: hidden;
+  transition: transform 0.4s var(--ease-out), box-shadow 0.4s;
+}
+.alert-card:hover { transform: translateY(-4px); }
+.alert-bar { height: 3px; width: 100%; transition: box-shadow 0.4s; }
+.alert-card.c1 .alert-bar { background: var(--cyan); }
+.alert-card.c2 .alert-bar { background: var(--gold); }
+.alert-card.c3 .alert-bar { background: var(--red); }
+.alert-card.c1:hover .alert-bar { box-shadow: 0 0 16px var(--cyan); }
+.alert-card.c2:hover .alert-bar { box-shadow: 0 0 16px var(--gold); }
+.alert-card.c3:hover .alert-bar { box-shadow: 0 0 16px var(--red); }
+.alert-body { padding: 32px 28px; }
+.alert-body svg { width: 32px; height: 32px; margin-bottom: 20px; }
+.alert-body .level {
+  font-size: 11px; letter-spacing: 2px;
+  color: var(--text-40);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.alert-body h3 {
+  font-size: 18px; font-weight: 500; color: #fff;
+  margin-bottom: 16px;
+}
+.alert-body p {
+  font-size: 14px; color: var(--text-50);
+  line-height: 1.8;
+}
+
+/* 概念方案大图 + 标注点 */
+.concept-figure {
+  position: relative;
+  max-width: 1100px;
+  margin: 0 auto;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.06);
+  overflow: hidden;
+}
+.concept-figure img { width: 100%; }
+.hotspot {
+  position: absolute;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+.hotspot::after {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.6);
+  animation: pulse 2s ease-out infinite;
+}
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.hotspot .tooltip {
+  position: absolute; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(6px);
+  width: 220px;
+  background: rgba(20,20,20,0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 0.5px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 12px; color: var(--text-65);
+  line-height: 1.7;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s var(--ease-out);
+  z-index: 3;
+}
+.hotspot:hover .tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.concept-caption {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 12px; font-style: italic;
+  color: var(--text-40);
+}
+
+/* ============================================================
+   04 研究方法：时间轴
+   ============================================================ */
+.timeline {
+  display: flex;
+  align-items: flex-start;
+  margin: 80px 0 120px;
+}
+.tl-node { flex: 0 0 auto; text-align: center; width: 140px; }
+.tl-circle {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; color: var(--text-50);
+  margin: 0 auto;
+  background: var(--bg-secondary);
+  transition: border-color 0.6s, color 0.6s, box-shadow 0.6s;
+  position: relative; z-index: 1;
+}
+.tl-node.active .tl-circle {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: 0 0 20px rgba(0,240,255,0.15);
+}
+.tl-node h4 {
+  margin-top: 20px;
+  font-size: 14px; font-weight: 400;
+  color: var(--text-85);
+}
+.tl-node p {
+  margin-top: 8px;
+  font-size: 12px; color: var(--text-40);
+  line-height: 1.6;
+  padding: 0 8px;
+}
+.tl-line {
+  flex: 1;
+  margin-top: 24px;
+  border-bottom: 1px dashed rgba(255,255,255,0.1);
+  transition: border-color 0.6s;
+}
+.tl-line.active { border-bottom: 1px solid var(--cyan); }
+
+/* ============================================================
+   04 数据可视化
+   ============================================================ */
+.data-title {
+  font-size: 18px; font-weight: 400; color: #fff;
+  letter-spacing: 1px;
+  margin-bottom: 56px;
+}
+.data-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+/* 雷达图 */
+.radar-wrap svg { width: 100%; max-width: 440px; margin: 0 auto; display: block; }
+.radar-data {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(0);
+  opacity: 0;
+  transition: transform 1.2s var(--ease-out), opacity 1.2s var(--ease-out);
+}
+.radar-wrap.visible .radar-data { transform: scale(1); opacity: 1; }
+.radar-legend {
+  display: flex; justify-content: center; gap: 32px;
+  margin-top: 24px;
+  font-size: 12px; color: var(--text-50);
+}
+.radar-legend i {
+  display: inline-block; width: 10px; height: 10px;
+  border-radius: 2px; margin-right: 8px;
+}
+/* 柱状图 */
+.bars { display: flex; flex-direction: column; gap: 40px; }
+.bar-group .bar-label {
+  font-size: 12px; color: var(--text-50);
+  letter-spacing: 1px;
+  margin-bottom: 14px;
+}
+.bar-row { display: flex; align-items: flex-end; gap: 16px; height: 120px; }
+.bar-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
+.bar-val {
+  font-size: 14px; font-weight: 400;
+  color: var(--text-85);
+  margin-bottom: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.bar {
+  border-radius: 4px 4px 0 0;
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 1s var(--ease-out);
+}
+.bars.visible .bar { transform: scaleY(1); }
+.bars.visible .bar-group:nth-child(1) .bar { transition-delay: 0.3s; }
+.bars.visible .bar-group:nth-child(2) .bar { transition-delay: 0.45s; }
+.bars.visible .bar-group:nth-child(3) .bar { transition-delay: 0.6s; }
+.bar.a { background: linear-gradient(to top, rgba(0,240,255,0.4), var(--cyan)); }
+.bar.b { background: rgba(255,255,255,0.15); }
+.bar-legend {
+  display: flex; gap: 32px; margin-top: 24px;
+  font-size: 12px; color: var(--text-50);
+}
+.bar-legend i {
+  display: inline-block; width: 10px; height: 10px;
+  border-radius: 2px; margin-right: 8px;
+}
+.data-note {
+  margin-top: 40px;
+  font-size: 12px; font-style: italic;
+  color: rgba(255,255,255,0.35);
+  text-align: center;
+  grid-column: 1 / -1;
+}
+
+/* 研究局限性 Accordion */
+.accordion {
+  margin-top: 100px;
+  border: 0.5px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.accordion-head {
+  width: 100%;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 24px 32px;
+  background: transparent;
+  border: none;
+  color: var(--text-75);
+  font-family: var(--font-sans);
+  font-size: 15px; font-weight: 400;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.accordion-head:hover { background: rgba(255,255,255,0.02); }
+.accordion-head .arrow {
+  font-size: 12px; color: var(--text-40);
+  transition: transform 0.5s var(--ease-out);
+}
+.accordion.open .accordion-head .arrow { transform: rotate(180deg); }
+.accordion-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.5s var(--ease-out);
+}
+.accordion-body-inner {
+  padding: 0 32px 32px;
+  font-size: 14px; color: var(--text-50);
+  line-height: 1.9;
+  border-top: 0.5px solid rgba(255,255,255,0.05);
+  padding-top: 24px;
+}
+
+/* ============================================================
+   05 研究结论
+   ============================================================ */
+.conclusion-box {
+  max-width: 720px;
+  margin: 0 auto 100px;
+  background: rgba(0,240,255,0.03);
+  border: 1px solid rgba(0,240,255,0.12);
+  border-radius: 16px;
+  padding: 40px;
+  text-align: center;
+}
+.conclusion-box .quote-mark {
+  font-size: 48px; line-height: 1;
+  color: rgba(0,240,255,0.2);
+  font-family: var(--font-serif);
+}
+.conclusion-box p {
+  font-size: 18px; font-weight: 400;
+  line-height: 2.0;
+  color: var(--text-85);
+  margin-top: 16px;
+}
+.conclusion-box .sign {
+  margin-top: 24px;
+  font-size: 14px; color: var(--text-40);
+}
+
+/* 设计建议列表 */
+.suggest-list { max-width: 720px; margin: 0 auto 100px; }
+.suggest-item {
+  display: flex; gap: 32px;
+  padding: 32px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.suggest-item .num {
+  font-size: 24px; font-weight: 200;
+  color: var(--gold);
+  flex: 0 0 auto;
+  transition: color 0.3s;
+  line-height: 1.4;
+}
+.suggest-item .body { transition: transform 0.3s var(--ease-out); }
+.suggest-item:hover .num { color: var(--cyan); }
+.suggest-item:hover .body { transform: translateX(8px); }
+.suggest-item h4 {
+  font-size: 16px; font-weight: 500;
+  color: rgba(255,255,255,0.9);
+  margin-bottom: 8px;
+}
+.suggest-item p { font-size: 14px; color: var(--text-50); line-height: 1.8; }
+
+/* 参考文献 */
+.references { max-width: 720px; margin: 0 auto; }
+.references h4 {
+  font-size: 14px; font-weight: 400;
+  color: var(--text-40);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+}
+.references ol { list-style: none; }
+.references li {
+  font-size: 12px; color: var(--text-40);
+  line-height: 2.0;
+  transition: color 0.2s;
+}
+.references li:hover { color: var(--text-75); }
+.references .ref-tag { color: var(--gold); margin-right: 8px; }
+
+/* ============================================================
+   页面底部
+   ============================================================ */
+.page-footer { padding: 80px 0 48px; border-top: 0.5px solid var(--border-faint); }
+.footer-nav {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 64px;
+}
+.footer-nav a {
+  font-size: 14px; color: var(--text-50);
+  border: 0.5px solid rgba(255,255,255,0.12);
+  border-radius: 100px;
+  padding: 12px 28px;
+  transition: color 0.3s, border-color 0.3s;
+}
+.footer-nav a:hover { color: var(--cyan); border-color: rgba(0,240,255,0.3); }
+.footer-bottom {
+  text-align: center;
+  font-size: 12px; color: rgba(255,255,255,0.25);
+  letter-spacing: 1px;
+  line-height: 2;
+}
+
+/* ============================================================
+   响应式
+   ============================================================ */
+@media (max-width: 1024px) {
+  .container { padding: 0 32px; }
+  .matrix-cols { gap: 40px; }
+  .data-grid { gap: 56px; }
+}
+@media (max-width: 768px) {
+  .container { padding: 0 24px; }
+  .nav { padding: 0 24px; }
+  .nav-links { gap: 20px; }
+  .nav-links a { font-size: 12px; }
+  .section { padding: 100px 0; }
+  .section-grid { grid-template-columns: 1fr; gap: 48px; }
+  .section-head { position: static; }
+  .matrix-cols { grid-template-columns: 1fr; gap: 0; }
+  .matrix-cols::before, .matrix-cols::after { display: none; }
+  .dim-label { margin: 40px 0 0; }
+  .alert-cards { grid-template-columns: 1fr; }
+  .timeline { flex-direction: column; align-items: center; gap: 0; }
+  .tl-line {
+    flex: 0 0 48px;
+    margin-top: 0;
+    border-bottom: none;
+    border-left: 1px dashed rgba(255,255,255,0.1);
+    width: 0;
+  }
+  .tl-line.active { border-left: 1px solid var(--cyan); }
+  .data-grid { grid-template-columns: 1fr; }
+  .footer-nav { flex-direction: column; gap: 20px; }
+  .hotspot .tooltip { width: 180px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ================= 顶部导航栏 ================= -->
+<nav class="nav" id="nav">
+  <!-- 占位：返回首页链接，替换为实际首页地址 -->
+  <a href="#" class="nav-back">← 返回首页</a>
+  <div class="nav-links">
+    <a href="#background" data-sec="background">研究背景</a>
+    <a href="#framework" data-sec="framework">理论框架</a>
+    <a href="#concept" data-sec="concept">设计概念</a>
+    <a href="#conclusion" data-sec="conclusion">研究结论</a>
+  </div>
+</nav>
+
+<!-- ================= Hero 项目标题区 ================= -->
+<header class="hero">
+  <span class="tag">跨领域人机工效研究</span>
+  <h1>从驾驶舱到座舱：航空HMI交互原则的迁移研究</h1>
+  <p class="subtitle">基于Endsley态势感知模型与眼动追踪的跨领域设计验证</p>
+  <div class="meta">
+    <span>2024</span><span>学术项目</span><span>人机工效</span><span>跨领域设计</span>
+  </div>
+  <div class="scroll-hint"></div>
+</header>
+
+<!-- ================= 01 研究背景 ================= -->
+<section class="section" id="background">
+  <div class="container section-grid">
+    <div class="section-head">
+      <div class="sec-num" data-parallax>01</div>
+      <h2 class="sec-title">研究背景</h2>
+      <div class="sec-rule"></div>
+      <!-- 占位：章节简述 2-3 行 -->
+      <p class="sec-desc">航空人机交互历经数十年严苛验证，其安全性设计原则对智能车载HMI具有潜在的迁移价值。</p>
+    </div>
+    <div class="section-body">
+      <!-- 占位：研究问题提出，约150字引言 -->
+      <p class="intro-text reveal">
+        随着智能驾驶等级向L3及以上演进，驾驶员的角色正从"操作者"转变为"监控者"，这一转变与航空领域中飞行员对自动化系统的监控情境高度相似。然而，车载HMI在告警分级、注意力引导与态势感知支持等方面仍缺乏系统性的理论支撑。本研究提出核心问题：经过航空领域长期验证的人机交互原则，能否结构化地迁移至智能车载座舱的设计语境中？
+      </p>
+
+      <!-- 引用块 -->
+      <blockquote class="quote-block reveal">
+        <p>"航空领域经过数十年验证的人机交互原则，能否为智能车载HMI的安全性设计提供可迁移的理论依据？"</p>
+      </blockquote>
+
+      <!-- 文献综述卡片（占位文献） -->
+      <div class="lit-list stagger">
+        <div class="lit-card slide-right">
+          <span class="ref-num">[1]</span>
+          <h3>占位文献标题：航空驾驶舱告警系统的人因工程演进</h3>
+          <p>占位摘要：梳理了航空告警系统从单一蜂鸣器到分级告警体系的演进历程，归纳了告警优先级的划分依据与视觉-听觉-触觉冗余编码原则。</p>
+        </div>
+        <div class="lit-card slide-right">
+          <span class="ref-num">[2]</span>
+          <h3>占位文献标题：Endsley态势感知模型在自动化监控中的应用</h3>
+          <p>占位摘要：基于感知-理解-预测三层模型，分析了飞行员在高度自动化驾驶舱中的态势感知衰退机制，并提出界面层级的补偿策略。</p>
+        </div>
+        <div class="lit-card slide-right">
+          <span class="ref-num">[3]</span>
+          <h3>占位文献标题：L3级自动驾驶接管请求的用户研究综述</h3>
+          <p>占位摘要：汇总了近年来接管请求（Takeover Request）场景的实证研究，指出当前车载告警在紧迫性编码与多通道协同上的不足。</p>
+        </div>
+      </div>
+
+      <!-- 研究缺口总结（占位） -->
+      <div class="gap-summary reveal">
+        研究缺口：现有车载HMI研究多聚焦单一交互元素的优化，缺乏将航空级安全设计原则进行系统性映射与实证验证的跨领域框架。
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 02 理论框架 ================= -->
+<section class="section alt" id="framework">
+  <div class="container section-grid">
+    <div class="section-head">
+      <div class="sec-num" data-parallax>02</div>
+      <h2 class="sec-title">理论框架</h2>
+      <div class="sec-rule"></div>
+      <p class="sec-desc">以Endsley态势感知模型为骨架，建立航空座舱与智能车载HMI的结构化对比与迁移路径。</p>
+    </div>
+    <div class="section-body">
+
+      <!-- 对比分析矩阵 -->
+      <div class="matrix-cols" id="matrix">
+        <div class="col-head slide-left">
+          <!-- 飞机图标（线条 SVG） -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="#00F0FF" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>
+          </svg>
+          <h3>航空座舱HMI</h3>
+        </div>
+        <div class="col-head slide-right">
+          <!-- 汽车图标（线条 SVG） -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="#00F0FF" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11m-14 0h14a2 2 0 0 1 2 2v4h-2.5m-13.5 0H3v-4a2 2 0 0 1 2-2zm2.5 6a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm9 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/>
+          </svg>
+          <h3>智能车载HMI</h3>
+        </div>
+
+        <!-- 维度 1：信息层级（占位内容） -->
+        <div class="dim-row">
+          <span class="dim-label">信息层级</span>
+          <div class="dim-card slide-left">占位：航空座舱采用严格的关键性分层，主飞行显示（PFD）仅呈现姿态、空速、高度等核心参数，次级信息按需调用。</div>
+          <div class="dim-card slide-right">占位：车载中控普遍采用扁平化信息架构，导航、娱乐、车辆状态同层竞争注意力，关键信息缺乏视觉优先级保障。</div>
+          <div class="migrate-arrow">⇅</div>
+        </div>
+
+        <!-- 维度 2：告警系统（占位内容） -->
+        <div class="dim-row">
+          <span class="dim-label">告警系统</span>
+          <div class="dim-card slide-left">占位：遵循三级告警体系（Advisory / Caution / Warning），颜色、音调与触觉反馈按紧迫度冗余编码，杜绝告警泛滥。</div>
+          <div class="dim-card slide-right">占位：车载告警多为单一等级弹窗与提示音，低优先级提醒与紧急告警混用通道，易导致告警疲劳与忽视。</div>
+          <div class="migrate-arrow">⇅</div>
+        </div>
+
+        <!-- 维度 3：注意力管理（占位内容） -->
+        <div class="dim-row">
+          <span class="dim-label">注意力管理</span>
+          <div class="dim-card slide-left">占位：通过"安静驾驶舱"（Dark Cockpit）哲学，正常状态下最小化干扰，异常时以渐进式引导回收注意力。</div>
+          <div class="dim-card slide-right">占位：大屏常亮、信息常驻，视觉噪音持续存在；接管场景下注意力回收路径长、认知切换成本高。</div>
+          <div class="migrate-arrow">⇅</div>
+        </div>
+
+        <!-- 维度 4：态势感知（占位内容） -->
+        <div class="dim-row">
+          <span class="dim-label">态势感知</span>
+          <div class="dim-card slide-left">占位：界面设计显式支持Endsley模型三层级——感知（当前状态）、理解（系统意图）、预测（趋势外推）。</div>
+          <div class="dim-card slide-right">占位：自动驾驶状态可视化多停留在"感知"层，系统意图与未来轨迹的呈现不足，监控者难以建立预测心智模型。</div>
+        </div>
+      </div>
+
+      <!-- 理论模型图 -->
+      <!-- 占位：框架图可替换为本地资源 assets/project3-framework.png（建议尺寸 1800×1000） -->
+      <figure class="figure-wrap reveal">
+        <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=minimalist%20academic%20research%20framework%20diagram%20on%20dark%20black%20background%2C%20Situation%20Awareness%20model%20three%20layers%20perception%20comprehension%20projection%2C%20thin%20cyan%20and%20gold%20line%20illustration%2C%20scientific%20journal%20figure%20style%2C%20clean%20geometric%20layout&image_size=landscape_16_9" alt="基于Endsley态势感知模型的跨领域迁移框架">
+        <figcaption>Figure 1. 基于Endsley态势感知模型的跨领域迁移框架</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 03 设计概念 ================= -->
+<section class="section" id="concept">
+  <div class="container section-grid">
+    <div class="section-head">
+      <div class="sec-num" data-parallax>03</div>
+      <h2 class="sec-title">设计概念</h2>
+      <div class="sec-rule"></div>
+      <p class="sec-desc">将航空分级告警体系与冗余编码原则转译为车载语境下的概念方案。</p>
+    </div>
+    <div class="section-body">
+      <h3 class="concept-sub reveal">航空级安全告警系统的车载化重构</h3>
+
+      <!-- 三个告警等级卡片 -->
+      <div class="alert-cards stagger">
+        <div class="alert-card c1 reveal">
+          <div class="alert-bar"></div>
+          <div class="alert-body">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#00F0FF" stroke-width="1.5" stroke-linecap="round">
+              <circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="8" r="0.5" fill="#00F0FF"/>
+            </svg>
+            <div class="level">Level 1 · Advisory</div>
+            <h3>提示级（Advisory）</h3>
+            <!-- 占位内容 -->
+            <p>非关键信息以环境化方式呈现：融入仪表边缘光效与HUD低对比度图层，不打断当前驾驶任务，供驾驶员自主调取。</p>
+          </div>
+        </div>
+        <div class="alert-card c2 reveal">
+          <div class="alert-bar"></div>
+          <div class="alert-body">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#C9A96E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3 2.5 20h19L12 3z"/><path d="M12 10v4"/><circle cx="12" cy="17" r="0.5" fill="#C9A96E"/>
+            </svg>
+            <div class="level">Level 2 · Caution</div>
+            <h3>警告级（Caution）</h3>
+            <!-- 占位内容 -->
+            <p>需要关注但无需立即响应的事件：琥珀色视觉标记 + 单音节听觉提示，引导驾驶员将注意力定向至相关显示区域。</p>
+          </div>
+        </div>
+        <div class="alert-card c3 reveal">
+          <div class="alert-bar"></div>
+          <div class="alert-body">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3 2.5 20h19L12 3z"/><path d="M12 9v5" stroke-width="2"/><circle cx="12" cy="17" r="1" fill="#EF4444"/>
+            </svg>
+            <div class="level">Level 3 · Warning</div>
+            <h3>紧急级（Warning）</h3>
+            <!-- 占位内容 -->
+            <p>立即介入类事件：红色高频闪烁 + 连续音调 + 方向盘触觉振动的三通道冗余告警，确保接管请求在任意注意力状态下可达。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 概念方案大图 + 标注点 -->
+      <!-- 占位：概念图可替换为本地资源 assets/project3-concept.png（建议尺寸 2200×1200） -->
+      <div class="concept-figure reveal">
+        <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=futuristic%20automotive%20L3%20autonomous%20driving%20takeover%20request%20HMI%20interface%20concept%2C%20dark%20dashboard%20with%20wide%20display%2C%20cyan%20and%20amber%20warning%20indicators%2C%20red%20urgent%20alert%20zone%2C%20minimalist%20premium%20car%20cockpit%20UI%20design%2C%20photorealistic%20render&image_size=landscape_16_9" alt="接管请求界面概念">
+        <!-- 标注点（绝对定位百分比，悬停显示 tooltip，占位说明） -->
+        <div class="hotspot" style="top: 22%; left: 30%;">
+          <div class="tooltip">视觉通道：风挡投影红色警示区，渐进式收缩动画引导视线回归路面。</div>
+        </div>
+        <div class="hotspot" style="top: 55%; left: 62%;">
+          <div class="tooltip">听觉通道：分级音调由弱至强，预留 3 秒认知响应窗口。</div>
+        </div>
+        <div class="hotspot" style="top: 78%; left: 40%;">
+          <div class="tooltip">触觉通道：方向盘双侧振动冗余编码，确保手握状态即时感知。</div>
+        </div>
+      </div>
+      <p class="concept-caption">Figure 2. 接管请求（Takeover Request）多通道冗余告警概念，迁移自航空告警体系至L3自动驾驶场景</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 04 研究方法 ================= -->
+<section class="section alt" id="method">
+  <div class="container section-grid">
+    <div class="section-head">
+      <div class="sec-num" data-parallax>04</div>
+      <h2 class="sec-title">研究方法</h2>
+      <div class="sec-rule"></div>
+      <p class="sec-desc">四阶段混合研究方法，结合定性洞察与眼动追踪定量验证。</p>
+    </div>
+    <div class="section-body">
+
+      <!-- 研究流程时间轴 -->
+      <div class="timeline" id="timeline">
+        <div class="tl-node">
+          <div class="tl-circle">1</div>
+          <h4>文献分析</h4>
+          <p>占位：梳理航空人因与车载HMI文献 120+ 篇</p>
+        </div>
+        <div class="tl-line"></div>
+        <div class="tl-node">
+          <div class="tl-circle">2</div>
+          <h4>专家访谈</h4>
+          <p>占位：访谈飞行员与HMI设计师共 8 人</p>
+        </div>
+        <div class="tl-line"></div>
+        <div class="tl-node">
+          <div class="tl-circle">3</div>
+          <h4>眼动实验</h4>
+          <p>占位：组内对照实验，采集注视与扫视指标</p>
+        </div>
+        <div class="tl-line"></div>
+        <div class="tl-node">
+          <div class="tl-circle">4</div>
+          <h4>设计迭代</h4>
+          <p>占位：基于数据反馈完成三轮方案迭代</p>
+        </div>
+      </div>
+
+      <!-- 数据可视化 -->
+      <h3 class="data-title reveal">眼动实验数据对比</h3>
+      <div class="data-grid">
+        <!-- 雷达图：SVG 实现，占位数据见注释 -->
+        <div class="radar-wrap reveal delay-data" id="radarWrap">
+          <svg viewBox="0 0 400 400">
+            <!-- 网格线（五边形四环） -->
+            <g stroke="rgba(255,255,255,0.06)" fill="none">
+              <polygon points="200,60 333.2,156.7 282.3,313.3 117.7,313.3 66.8,156.7"/>
+              <polygon points="200,95 299.9,132.5 261.7,270 138.3,270 100.1,132.5"/>
+              <polygon points="200,130 266.6,108.4 241.2,226.6 158.8,226.6 133.4,108.4" transform="rotate(0 200 200)"/>
+              <polygon points="200,165 233.3,167.5 220.6,241.3 179.4,241.3 166.7,167.5" opacity="0.6"/>
+            </g>
+            <!-- 轴线 -->
+            <g stroke="rgba(255,255,255,0.06)">
+              <line x1="200" y1="200" x2="200" y2="60"/>
+              <line x1="200" y1="200" x2="333.2" y2="156.7"/>
+              <line x1="200" y1="200" x2="282.3" y2="313.3"/>
+              <line x1="200" y1="200" x2="117.7" y2="313.3"/>
+              <line x1="200" y1="200" x2="66.8" y2="156.7"/>
+            </g>
+            <!-- 占位数据：航空组 [0.85, 0.75, 0.9, 0.7, 0.88] / 车载组 [0.7, 0.6, 0.75, 0.8, 0.65]
+                 维度顺序：搜索效率 / 认知负荷 / 错误率 / 满意度 / 态势感知 -->
+            <g class="radar-data">
+              <polygon points="200,81 299.9,167.6 274.1,301.9 142.4,279.3 82.8,161.9"
+                fill="rgba(0,240,255,0.15)" stroke="#00F0FF" stroke-width="1.5"/>
+              <polygon points="200,102 279.9,174 261.7,284.9 134.1,290.6 113.4,171.9"
+                fill="rgba(201,169,110,0.15)" stroke="#C9A96E" stroke-width="1.5"/>
+            </g>
+            <!-- 维度标签 -->
+            <g font-size="12" fill="rgba(255,255,255,0.5)" text-anchor="middle">
+              <text x="200" y="44">搜索效率</text>
+              <text x="352" y="152">认知负荷</text>
+              <text x="296" y="338">错误率</text>
+              <text x="104" y="338">满意度</text>
+              <text x="48" y="152">态势感知</text>
+            </g>
+          </svg>
+          <div class="radar-legend">
+            <span><i style="background:#00F0FF"></i>航空原则组</span>
+            <span><i style="background:#C9A96E"></i>常规设计组</span>
+          </div>
+        </div>
+
+        <!-- 柱状图：CSS 实现，占位数据见注释 -->
+        <div class="bars reveal delay-data" id="bars">
+          <!-- 占位数据：首次注视时间 1.2s vs 2.1s（越低越好） -->
+          <div class="bar-group">
+            <div class="bar-label">首次注视时间（s）</div>
+            <div class="bar-row">
+              <div class="bar-col"><div class="bar-val" data-target="1.2" data-decimal="1">0</div><div class="bar a" style="height:57%"></div></div>
+              <div class="bar-col"><div class="bar-val" data-target="2.1" data-decimal="1">0</div><div class="bar b" style="height:100%"></div></div>
+            </div>
+          </div>
+          <!-- 占位数据：注视点数量 18 vs 26 -->
+          <div class="bar-group">
+            <div class="bar-label">注视点数量（次）</div>
+            <div class="bar-row">
+              <div class="bar-col"><div class="bar-val" data-target="18">0</div><div class="bar a" style="height:69%"></div></div>
+              <div class="bar-col"><div class="bar-val" data-target="26">0</div><div class="bar b" style="height:100%"></div></div>
+            </div>
+          </div>
+          <!-- 占位数据：任务完成率 94% vs 82% -->
+          <div class="bar-group">
+            <div class="bar-label">任务完成率（%）</div>
+            <div class="bar-row">
+              <div class="bar-col"><div class="bar-val" data-target="94">0</div><div class="bar a" style="height:100%"></div></div>
+              <div class="bar-col"><div class="bar-val" data-target="82">0</div><div class="bar b" style="height:87%"></div></div>
+            </div>
+          </div>
+          <div class="bar-legend">
+            <span><i style="background:#00F0FF"></i>航空原则应用组</span>
+            <span><i style="background:rgba(255,255,255,0.15)"></i>常规设计组</span>
+          </div>
+        </div>
+
+        <p class="data-note">样本量：N=16 | 实验设计：组内对照 | *p&lt;0.05</p>
+      </div>
+
+      <!-- 研究局限性 Accordion -->
+      <div class="accordion reveal" id="accordion">
+        <button class="accordion-head" type="button">
+          研究局限与展望
+          <span class="arrow">▾</span>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-body-inner">
+            <!-- 占位内容 -->
+            本研究存在以下局限：其一，样本量（N=16）相对有限，且受试者以具备驾驶经验的青年群体为主，结论的外部效度有待扩大样本验证；其二，实验基于驾驶模拟器完成，与真实道路环境的认知负荷存在差异；其三，航空原则的迁移验证目前聚焦于告警系统，信息层级与态势感知维度的迁移仍需专项实验。未来研究将引入实车路测与更大样本，并探索迁移框架在船舶、轨道交通等其他安全关键领域的适用性。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 05 研究结论 ================= -->
+<section class="section" id="conclusion">
+  <div class="container section-grid">
+    <div class="section-head">
+      <div class="sec-num" data-parallax>05</div>
+      <h2 class="sec-title">研究结论</h2>
+      <div class="sec-rule"></div>
+      <p class="sec-desc">跨领域迁移具备理论可行性与实证有效性，并形成可操作的设计建议。</p>
+    </div>
+    <div class="section-body">
+
+      <!-- 核心结论（占位文字，约80字） -->
+      <div class="conclusion-box reveal">
+        <div class="quote-mark">"</div>
+        <p>实验数据表明，航空分级告警与冗余编码原则的迁移应用，使接管场景下的首次注视时间缩短42.9%，任务完成率提升至94%。Endsley态势感知模型为跨领域HMI设计提供了有效的结构化映射框架。</p>
+        <div class="sign">— 基于本研究的设计建议</div>
+      </div>
+
+      <!-- 设计建议列表（占位内容） -->
+      <div class="suggest-list stagger">
+        <div class="suggest-item slide-left">
+          <div class="num">01</div>
+          <div class="body">
+            <h4>建立车载三级告警分级标准</h4>
+            <p>按事件紧迫度划分提示、警告、紧急三级，并为每一级绑定独立的视觉、听觉与触觉编码通道，杜绝告警通道混用。</p>
+          </div>
+        </div>
+        <div class="suggest-item slide-left">
+          <div class="num">02</div>
+          <div class="body">
+            <h4>引入"安静座舱"信息呈现哲学</h4>
+            <p>正常行驶状态下最小化非必要信息的视觉占用，仅在系统状态变化时以渐进方式唤醒注意力，降低持续监控负荷。</p>
+          </div>
+        </div>
+        <div class="suggest-item slide-left">
+          <div class="num">03</div>
+          <div class="body">
+            <h4>显式呈现系统意图与轨迹预测</h4>
+            <p>自动驾驶可视化应从状态感知延伸至意图理解与轨迹预测层级，帮助监控者建立完整的三层态势感知心智模型。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 参考文献（占位格式） -->
+      <div class="references reveal">
+        <h4>参考文献</h4>
+        <ol>
+          <li><span class="ref-tag">[1]</span>占位作者. 航空驾驶舱告警系统的人因工程演进. 占位期刊, 2019.</li>
+          <li><span class="ref-tag">[2]</span>Endsley M R. Toward a Theory of Situation Awareness in Dynamic Systems. Human Factors, 1995.</li>
+          <li><span class="ref-tag">[3]</span>占位作者. L3级自动驾驶接管请求的用户研究综述. 占位会议, 2022.</li>
+          <li><span class="ref-tag">[4]</span>占位作者. 智能座舱信息架构与注意力管理. 占位期刊, 2023.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 页面底部 ================= -->
+<footer class="page-footer">
+  <div class="container">
+    <div class="footer-nav">
+      <!-- 占位：替换为实际项目链接 -->
+      <a href="#">← 项目二：Unity车载3D可视化</a>
+      <a href="#">返回首页 →</a>
+    </div>
+    <div class="footer-bottom">
+      © 2024 占位作者姓名 · 个人学术作品集<br>
+      联系方式：placeholder@example.com
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   1. 导航栏：滚动 >100px 毛玻璃 + 当前区域高亮
+   ============================================================ */
+const nav = document.getElementById('nav');
+const navLinks = document.querySelectorAll('.nav-links a');
+
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('scrolled', window.scrollY > 100);
+}, { passive: true });
+
+// 当前区域高亮（Intersection Observer）
+const secObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      navLinks.forEach(a => a.classList.toggle('active', a.dataset.sec === entry.target.id));
+    }
+  });
+}, { rootMargin: '-40% 0px -55% 0px' });
+['background', 'framework', 'concept', 'conclusion'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) secObserver.observe(el);
+});
+
+/* ============================================================
+   2. 滚动触发浮现动画（reveal / slide-left / slide-right）
+   ============================================================ */
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      revealObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.15 });
+document.querySelectorAll('.reveal, .slide-left, .slide-right, .quote-block, .matrix-cols')
+  .forEach(el => revealObserver.observe(el));
+
+/* ============================================================
+   3. 装饰大数字视差（0.3 倍速偏移）
+   ============================================================ */
+const parallaxNums = document.querySelectorAll('[data-parallax]');
+function parallax() {
+  parallaxNums.forEach(el => {
+    const rect = el.parentElement.getBoundingClientRect();
+    const offset = (rect.top + rect.height / 2 - window.innerHeight / 2) * 0.3;
+    el.style.transform = `translateY(${offset * -0.35}px)`;
+  });
+}
+window.addEventListener('scroll', () => requestAnimationFrame(parallax), { passive: true });
+parallax();
+
+/* ============================================================
+   4. 时间轴节点：依次激活
+   ============================================================ */
+const timeline = document.getElementById('timeline');
+const tlNodes = timeline.querySelectorAll('.tl-node');
+const tlLines = timeline.querySelectorAll('.tl-line');
+new IntersectionObserver((entries, obs) => {
+  if (entries[0].isIntersecting) {
+    tlNodes.forEach((node, i) => {
+      setTimeout(() => {
+        node.classList.add('active');
+        if (tlLines[i - 1]) tlLines[i - 1].classList.add('active');
+      }, i * 300);   // stagger 0.3s
+    });
+    obs.disconnect();
+  }
+}, { threshold: 0.4 }).observe(timeline);
+
+/* ============================================================
+   5. 柱状图：生长动画 + 数字计数
+   ============================================================ */
+function animateCount(el) {
+  const target = parseFloat(el.dataset.target);
+  const decimals = parseInt(el.dataset.decimal || 0, 10);
+  const duration = 1000;
+  const start = performance.now();
+  function tick(now) {
+    const p = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - p, 3);   // ease-out cubic
+    el.textContent = (target * eased).toFixed(decimals);
+    if (p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+new IntersectionObserver((entries, obs) => {
+  if (entries[0].isIntersecting) {
+    entries[0].target.classList.add('visible');
+    entries[0].target.querySelectorAll('.bar-val').forEach(animateCount);
+    obs.disconnect();
+  }
+}, { threshold: 0.3 }).observe(document.getElementById('bars'));
+
+/* ============================================================
+   6. 研究局限 Accordion
+   ============================================================ */
+const accordion = document.getElementById('accordion');
+const accBody = accordion.querySelector('.accordion-body');
+accordion.querySelector('.accordion-head').addEventListener('click', () => {
+  const open = accordion.classList.toggle('open');
+  accBody.style.maxHeight = open ? accBody.scrollHeight + 'px' : '0';
+});
+</script>
+</body>
+</html>

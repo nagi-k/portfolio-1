@@ -38,7 +38,7 @@ collections:
       - label: 类别
         name: category
         widget: select
-        options: [工业设计, 交互设计, UI设计, UX设计]
+        options: [工业设计, 交互设计, UI设计, UX设计, HMI设计]
         default: 工业设计
       - { label: 封面图, name: cover, widget: image, hint: 建议 4:3，网页用低分辨率版本 }
       - { label: 一句话描述, name: excerpt, widget: text }
@@ -48,6 +48,7 @@ collections:
       - { label: 首页精选, name: featured, widget: boolean, default: false }
       - { label: 隐藏（不上线）, name: hidden, widget: boolean, default: false }
       - { label: 排序权重（小在前）, name: order, widget: number, default: 99, value_type: int }
+      - { label: 自定义详情页路径, name: customPage, widget: string, required: false, hint: 'HMI 项目专用，如 /hmi-projects/project1-hmi.html，填写后点击项目会跳转到该页面' }
       - label: 项目正文
         name: body
         widget: markdown

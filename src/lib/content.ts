@@ -13,6 +13,7 @@ export interface Project {
   featured: boolean
   hidden: boolean
   order: number
+  customPage?: string
   body: string
 }
 
@@ -67,7 +68,7 @@ export const projects: Project[] = Object.entries(projectFiles)
 export const featuredProjects = projects.filter((p) => p.featured)
 
 /** 固定分类展示顺序 */
-export const categoryOrder = ['工业设计', '交互设计', 'UI设计', 'UX设计']
+export const categoryOrder = ['工业设计', '交互设计', 'UI设计', 'UX设计', 'HMI设计']
 
 export const categories = categoryOrder.filter((c) => projects.some((p) => p.category === c))
 

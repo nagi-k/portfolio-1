@@ -57,46 +57,58 @@ export default function ProjectCarousel({ projects, variant = 'default' }: Props
         className="flex h-full transition-transform duration-700 ease-out"
         style={{ transform: `translateX(-${current * 100}%)` }}
       >
-        {projects.map((p) => (
-          <div key={p.slug} className="relative h-full w-full flex-shrink-0">
-            <Link to={`/works/${p.slug}`} className="group block h-full">
-              <div className={`relative ${isHero ? 'h-full' : 'aspect-[16/10] md:aspect-[21/9]'}`}>
-                <img
-                  src={resolveAsset(p.cover)}
-                  alt={p.title}
-                  loading={isHero ? 'eager' : 'lazy'}
-                  decoding="async"
-                  className="h-full w-full object-cover opacity-90 transition-opacity duration-700 group-hover:opacity-100"
-                />
+        {projects.map((p) => {
+          const slideContent = (
+            <div className={`relative ${isHero ? 'h-full' : 'aspect-[16/10] md:aspect-[21/9]'}`}>
+              <img
+                src={resolveAsset(p.cover)}
+                alt={p.title}
+                loading={isHero ? 'eager' : 'lazy'}
+                decoding="async"
+                className="h-full w-full object-cover opacity-90 transition-opacity duration-700 group-hover:opacity-100"
+              />
 
-                {!isHero && (
-                  <>
-                    {/* Gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/20 to-transparent" />
+              {!isHero && (
+                <>
+                  {/* Gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/20 to-transparent" />
 
-                    {/* Caption */}
-                    <div className="absolute bottom-0 left-0 w-full p-6 text-white md:p-12">
-                      <div className="container-site">
-                        <p className="font-en text-xs uppercase tracking-widest text-white/60">
-                          {p.category} · {p.year}
-                        </p>
-                        <h3 className="mt-3 text-xl font-light tracking-tight md:text-4xl">
-                          {p.title}
-                        </h3>
-                        <p className="mt-2 max-w-xl text-sm text-white/70 md:text-base">
-                          {p.excerpt}
-                        </p>
-                        <span className="mt-5 inline-flex items-center gap-1 text-sm text-white/80 transition-colors group-hover:text-white">
-                          查看项目 <ChevronRight className="h-4 w-4" />
-                        </span>
-                      </div>
+                  {/* Caption */}
+                  <div className="absolute bottom-0 left-0 w-full p-6 text-white md:p-12">
+                    <div className="container-site">
+                      <p className="font-en text-xs uppercase tracking-widest text-white/60">
+                        {p.category} · {p.year}
+                      </p>
+                      <h3 className="mt-3 text-xl font-light tracking-tight md:text-4xl">
+                        {p.title}
+                      </h3>
+                      <p className="mt-2 max-w-xl text-sm text-white/70 md:text-base">
+                        {p.excerpt}
+                      </p>
+                      <span className="mt-5 inline-flex items-center gap-1 text-sm text-white/80 transition-colors group-hover:text-white">
+                        查看项目 <ChevronRight className="h-4 w-4" />
+                      </span>
                     </div>
-                  </>
-                )}
-              </div>
-            </Link>
-          </div>
-        ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )
+
+          return (
+            <div key={p.slug} className="relative h-full w-full flex-shrink-0">
+              {p.customPage ? (
+                <a href={p.customPage} className="group block h-full">
+                  {slideContent}
+                </a>
+              ) : (
+                <Link to={`/works/${p.slug}`} className="group block h-full">
+                  {slideContent}
+                </Link>
+              )}
+            </div>
+          )
+        })}
       </div>
 
       {/* Hero 底部当前项目提示 */}
