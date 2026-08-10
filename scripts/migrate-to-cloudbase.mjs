@@ -3,15 +3,22 @@ import fs from 'fs'
 import path from 'path'
 
 const secretId = process.env.CLOUDBASE_SECRET_ID || process.env.TCB_SECRET_ID
-const secretKey = process.env.CLOUDBASE_SECRET_KEY || process.env.TCB_SECRET_KEY
+let secretKey = process.env.CLOUDBASE_SECRET_KEY || process.env.TCB_SECRET_KEY
 const envId = process.env.CLOUDBASE_ENV_ID || process.env.TCB_ENV_ID
+const accessKey = process.env.CLOUDBASE_ACCESS_KEY || (secretKey && secretKey.startsWith('eyJ') ? secretKey : undefined)
+if (accessKey) secretKey = undefined
 
-if (!secretId || !secretKey || !envId) {
-  console.error('请设置环境变量：CLOUDBASE_SECRET_ID / CLOUDBASE_SECRET_KEY / CLOUDBASE_ENV_ID')
+if (!envId || (!accessKey && (!secretId || !secretKey))) {
+  console.error('请设置环境变量：CLOUDBASE_SECRET_ID / CLOUDBASE_SECRET_KEY / CLOUDBASE_ENV_ID，或传入 CLOUDBASE_ACCESS_KEY')
   process.exit(1)
 }
 
-const app = cloudbase.init({ env: envId, secretId, secretKey })
+const app = cloudbase.init({
+  env: envId,
+  ...(accessKey ? { accessKey } : { secretId, secretKey }),
+  proxy: process.env.HTTPS_PROXY || process.env.https_proxy || undefined,
+  timeout: 30000,
+})
 const db = app.database()
 
 const dataPath = path.join(process.cwd(), 'content', 'data.json')
