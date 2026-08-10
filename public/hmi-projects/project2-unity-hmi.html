@@ -903,7 +903,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
      ============================================================ -->
 <nav class="nav" id="nav">
   <!-- 点击返回上一页 -->
-  <a href="javascript:history.back()" class="nav-back">
+  <a href="#" onclick="event.preventDefault(); window.location.href = document.referrer || '/';" class="nav-back">
     <span class="arrow">←</span>
     <span>返回</span>
   </a>
