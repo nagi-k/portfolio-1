@@ -56,7 +56,25 @@ async function migrateProjects(projects) {
   }
 }
 
+async function ensureCollection(name) {
+  try {
+    await db.createCollection(name)
+    console.log(`  创建集合 ${name}`)
+  } catch (err) {
+    if (err.code === 'DATABASE_COLLECTION_EXIST' || err.message?.includes('already exist')) {
+      console.log(`  集合 ${name} 已存在`)
+    } else {
+      console.warn(`  创建集合 ${name} 跳过：`, err.message)
+    }
+  }
+}
+
 async function main() {
+  console.log('检查集合...')
+  await ensureCollection('projects')
+  await ensureCollection('site')
+  await ensureCollection('about')
+
   await migrateProjects(data.projects || [])
 
   if (data.site) {

@@ -19,6 +19,7 @@
     "react-router-dom": "^6.30.0"
   },
   "devDependencies": {
+    "@cloudbase/manager-node": "^5.6.7",
     "@cloudbase/node-sdk": "^3.18.3",
     "@types/js-yaml": "^4.0.9",
     "@types/react": "^18.3.12",
