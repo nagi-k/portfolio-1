@@ -18,6 +18,7 @@ function requestToken(code, clientId, clientSecret) {
           Accept: 'application/json',
           'Content-Length': Buffer.byteLength(data),
         },
+        timeout: 10000,
       },
       (res) => {
         let body = ''
@@ -34,6 +35,10 @@ function requestToken(code, clientId, clientSecret) {
     )
 
     req.on('error', reject)
+    req.on('timeout', () => {
+      req.destroy()
+      reject(new Error('Request to GitHub timed out'))
+    })
     req.write(data)
     req.end()
   })
@@ -46,6 +51,8 @@ function getPath(event) {
 }
 
 exports.main = async (event, context) => {
+  console.log('event:', JSON.stringify(event))
+
   const { httpMethod, queryStringParameters, headers } = event
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -96,7 +103,17 @@ exports.main = async (event, context) => {
       }
     }
 
-    const tokenRes = await requestToken(code, clientId, clientSecret)
+    let tokenRes
+    try {
+      tokenRes = await requestToken(code, clientId, clientSecret)
+    } catch (err) {
+      console.error('requestToken error:', err.message)
+      return {
+        statusCode: 502,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'github_request_failed', message: err.message }),
+      }
+    }
 
     if (tokenRes.error) {
       return {
@@ -107,6 +124,14 @@ exports.main = async (event, context) => {
     }
 
     const token = tokenRes.access_token
+    if (!token) {
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'no_access_token', response: tokenRes }),
+      }
+    }
+
     const message = JSON.stringify({ provider: 'github', token }).replace(/'/g, "\\'")
 
     const html = `<!DOCTYPE html>
