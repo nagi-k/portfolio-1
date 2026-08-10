@@ -5,8 +5,630 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex" />
     <title>内容管理 · Portfolio CMS</title>
+    <script src="https://imgcache.qq.com/qcloud/cloudbase-js-sdk/1.7.1/cloudbase.full.js"></script>
+    <style>
+      :root {
+        --bg: #fafafa;
+        --paper: #fff;
+        --ink: #1a1a1a;
+        --ink-soft: #555;
+        --ink-mute: #888;
+        --line: #e5e5e5;
+        --accent: #2563eb;
+        --danger: #dc2626;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        line-height: 1.6;
+      }
+      .container {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      .card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 24px;
+        margin-bottom: 20px;
+      }
+      h1, h2, h3 { margin-top: 0; font-weight: 500; }
+      h1 { font-size: 22px; }
+      h2 { font-size: 18px; margin-bottom: 16px; }
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 14px;
+        color: var(--ink-soft);
+      }
+      input[type='text'],
+      input[type='email'],
+      input[type='password'],
+      input[type='number'],
+      textarea,
+      select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        font-size: 14px;
+        margin-bottom: 16px;
+        font-family: inherit;
+      }
+      textarea {
+        min-height: 120px;
+        resize: vertical;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+      }
+      .row > div { margin-bottom: 0; }
+      .row input, .row select, .row textarea { margin-bottom: 0; }
+      button {
+        padding: 10px 18px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        background: var(--accent);
+        color: #fff;
+      }
+      button.secondary {
+        background: var(--paper);
+        color: var(--ink);
+        border: 1px solid var(--line);
+      }
+      button.danger {
+        background: var(--danger);
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .btn-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+      }
+      .nav {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+      }
+      .nav button {
+        background: var(--paper);
+        color: var(--ink);
+        border: 1px solid var(--line);
+      }
+      .nav button.active {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+      }
+      .list-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .list-item:last-child { border-bottom: none; }
+      .list-title { font-weight: 500; }
+      .list-meta { font-size: 13px; color: var(--ink-mute); }
+      .hidden { display: none !important; }
+      .message {
+        padding: 12px 16px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+        font-size: 14px;
+      }
+      .message.success { background: #dcfce7; color: #166534; }
+      .message.error { background: #fee2e2; color: #991b1b; }
+      .preview-img {
+        max-width: 200px;
+        max-height: 120px;
+        border-radius: 4px;
+        margin-top: 8px;
+        border: 1px solid var(--line);
+      }
+      .tag-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        background: #f3f4f6;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+      .tag button {
+        padding: 0;
+        background: transparent;
+        color: var(--ink-mute);
+        font-size: 16px;
+        line-height: 1;
+      }
+      .login-box {
+        max-width: 360px;
+        margin: 80px auto;
+      }
+      .hint { font-size: 13px; color: var(--ink-mute); margin-top: 4px; }
+    </style>
   </head>
   <body>
-    <script src="https://unpkg.com/decap-cms@^3.1.2/dist/decap-cms.js"></script>
+    <div id="app"></div>
+
+    <script>
+      const ENV_ID = 'nagi-k-d8gsfr0jmc6c1e6bb'
+      const DEPLOY_SECRET = '' // 如需防滥用，填写与云函数 deploy-site 环境变量 DEPLOY_SECRET 一致的值
+      const STORAGE_DOMAIN = `https://${ENV_ID}.tcb.qcloud.la`
+      const app = cloudbase.init({ env: ENV_ID })
+      const auth = app.auth({ persistence: 'local' })
+      const db = app.database()
+      const storage = app.storage()
+
+      const categories = ['工业设计', 'HMI设计', '交互设计', 'UI设计', 'UX设计']
+
+      const appEl = document.getElementById('app')
+
+      function showMessage(text, type = 'success') {
+        const el = document.createElement('div')
+        el.className = `message ${type}`
+        el.textContent = text
+        appEl.insertBefore(el, appEl.firstChild)
+        setTimeout(() => el.remove(), 4000)
+      }
+
+      function renderLogin() {
+        appEl.innerHTML = `
+          <div class="card login-box">
+            <h1>Portfolio CMS</h1>
+            <p class="hint">使用 CloudBase 账号登录</p>
+            <label>邮箱</label>
+            <input type="email" id="email" placeholder="admin@example.com" />
+            <label>密码</label>
+            <input type="password" id="password" placeholder="密码" />
+            <button id="loginBtn" style="width:100%; margin-top:8px;">登录</button>
+          </div>
+        `
+        document.getElementById('loginBtn').onclick = async () => {
+          const email = document.getElementById('email').value
+          const password = document.getElementById('password').value
+          try {
+            await auth.signInWithEmailAndPassword(email, password)
+            renderDashboard()
+          } catch (err) {
+            showMessage('登录失败：' + err.message, 'error')
+          }
+        }
+      }
+
+      async function checkLogin() {
+        const loginState = await auth.getLoginState()
+        if (loginState) {
+          renderDashboard()
+        } else {
+          renderLogin()
+        }
+      }
+
+      function renderNav(active) {
+        return `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+            <h1 style="margin:0;">Portfolio CMS</h1>
+            <button class="secondary" id="logoutBtn">退出</button>
+          </div>
+          <div class="nav">
+            <button class="nav-btn ${active === 'projects' ? 'active' : ''}" data-page="projects">作品管理</button>
+            <button class="nav-btn ${active === 'site' ? 'active' : ''}" data-page="site">站点信息</button>
+            <button class="nav-btn ${active === 'about' ? 'active' : ''}" data-page="about">关于我</button>
+          </div>
+        `
+      }
+
+      function bindNav() {
+        document.querySelectorAll('.nav-btn').forEach((btn) => {
+          btn.onclick = () => {
+            const page = btn.dataset.page
+            if (page === 'projects') renderProjects()
+            if (page === 'site') renderSite()
+            if (page === 'about') renderAbout()
+          }
+        })
+        document.getElementById('logoutBtn').onclick = async () => {
+          await auth.signOut()
+          renderLogin()
+        }
+      }
+
+      async function renderDashboard() {
+        renderProjects()
+      }
+
+      async function renderProjects() {
+        const { data } = await db.collection('projects').orderBy('order', 'asc').get()
+        const list = data.map((p) => `
+          <div class="list-item">
+            <div>
+              <div class="list-title">${p.title || '未命名'}</div>
+              <div class="list-meta">${p.category || ''} · ${p.year || ''} · 排序 ${p.order}</div>
+            </div>
+            <div>
+              <button onclick="editProject('${p._id}')">编辑</button>
+              <button class="secondary" onclick="deleteProject('${p._id}')">删除</button>
+            </div>
+          </div>
+        `).join('')
+
+        appEl.innerHTML = `
+          ${renderNav('projects')}
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <h2 style="margin:0;">作品列表</h2>
+              <button onclick="createProject()">+ 新建作品</button>
+            </div>
+            ${list || '<p style="color:#888;">暂无作品</p>'}
+          </div>
+        `
+        bindNav()
+      }
+
+      function projectForm(project = {}) {
+        const isNew = !project._id
+        const tags = project.tags || []
+        return `
+          <div class="card">
+            <h2>${isNew ? '新建作品' : '编辑作品'}</h2>
+            <div class="row">
+              <div>
+                <label>标题</label>
+                <input type="text" id="title" value="${escapeHtml(project.title || '')}" />
+              </div>
+              <div>
+                <label>年份</label>
+                <input type="text" id="year" value="${escapeHtml(project.year || '')}" />
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label>类别</label>
+                <select id="category">
+                  ${categories.map((c) => `<option value="${c}" ${project.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label>排序权重（小在前）</label>
+                <input type="number" id="order" value="${project.order ?? 99}" />
+              </div>
+            </div>
+            <label>封面图</label>
+            <input type="file" id="coverFile" accept="image/*" />
+            <input type="hidden" id="cover" value="${escapeHtml(project.cover || '')}" />
+            ${project.cover ? `<img src="${project.cover}" class="preview-img" id="coverPreview" />` : '<img class="preview-img hidden" id="coverPreview" />'}
+            <label>一句话描述</label>
+            <textarea id="excerpt">${escapeHtml(project.excerpt || '')}</textarea>
+            <label>标签</label>
+            <div class="tag-list" id="tagList"></div>
+            <div style="display:flex; gap:8px; margin-bottom:16px;">
+              <input type="text" id="tagInput" placeholder="输入标签按回车" style="flex:1; margin-bottom:0;" />
+              <button type="button" onclick="addTag()">添加</button>
+            </div>
+            <div class="row">
+              <div>
+                <label>担任角色（选填）</label>
+                <input type="text" id="role" value="${escapeHtml(project.role || '')}" />
+              </div>
+              <div>
+                <label>客户 / 背景（选填）</label>
+                <input type="text" id="client" value="${escapeHtml(project.client || '')}" />
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label>首页精选</label>
+                <select id="featured">
+                  <option value="false" ${!project.featured ? 'selected' : ''}>否</option>
+                  <option value="true" ${project.featured ? 'selected' : ''}>是</option>
+                </select>
+              </div>
+              <div>
+                <label>隐藏（不上线）</label>
+                <select id="hidden">
+                  <option value="false" ${!project.hidden ? 'selected' : ''}>否</option>
+                  <option value="true" ${project.hidden ? 'selected' : ''}>是</option>
+                </select>
+              </div>
+            </div>
+            <label>自定义详情页路径（HMI 项目专用）</label>
+            <input type="text" id="customPage" value="${escapeHtml(project.customPage || '')}" placeholder="如 /hmi-projects/project1-hmi.html" />
+            <label>项目正文（支持 Markdown）</label>
+            <textarea id="body" style="min-height:240px;">${escapeHtml(project.body || '')}</textarea>
+            <div class="btn-group">
+              <button id="saveBtn" onclick="saveProject('${project._id || ''}')">保存</button>
+              <button class="secondary" onclick="renderProjects()">取消</button>
+            </div>
+          </div>
+        `
+      }
+
+      window.createProject = () => {
+        appEl.innerHTML = renderNav('projects') + projectForm()
+        bindNav()
+        bindTagInput([])
+      }
+
+      window.editProject = async (id) => {
+        const { data } = await db.collection('projects').doc(id).get()
+        const project = data[0]
+        appEl.innerHTML = renderNav('projects') + projectForm(project)
+        bindNav()
+        bindTagInput(project.tags || [])
+      }
+
+      window.deleteProject = async (id) => {
+        if (!confirm('确定删除这个作品？')) return
+        await db.collection('projects').doc(id).remove()
+        showMessage('已删除')
+        renderProjects()
+      }
+
+      let currentTags = []
+
+      function bindTagInput(tags) {
+        currentTags = [...tags]
+        renderTags()
+        const input = document.getElementById('tagInput')
+        input.onkeydown = (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            addTag()
+          }
+        }
+        document.getElementById('coverFile').onchange = async (e) => {
+          const file = e.target.files[0]
+          if (file) await uploadImage(file, 'cover')
+        }
+      }
+
+      window.addTag = () => {
+        const input = document.getElementById('tagInput')
+        const val = input.value.trim()
+        if (val && !currentTags.includes(val)) {
+          currentTags.push(val)
+          input.value = ''
+          renderTags()
+        }
+      }
+
+      function removeTag(tag) {
+        currentTags = currentTags.filter((t) => t !== tag)
+        renderTags()
+      }
+
+      function renderTags() {
+        const el = document.getElementById('tagList')
+        if (!el) return
+        el.innerHTML = currentTags.map((t) => `
+          <span class="tag">
+            ${escapeHtml(t)}
+            <button type="button" onclick="window.removeTag('${escapeHtml(t)}')">&times;</button>
+          </span>
+        `).join('')
+      }
+
+      window.removeTag = removeTag
+
+      async function uploadImage(file, field) {
+        try {
+          const ext = file.name.split('.').pop()
+          const cloudPath = `images/uploads/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+          const res = await storage.uploadFile({ cloudPath, filePath: file })
+          const url = `${STORAGE_DOMAIN}/${cloudPath}`
+          document.getElementById(field).value = url
+          const preview = document.getElementById(`${field}Preview`)
+          preview.src = url
+          preview.classList.remove('hidden')
+          showMessage('图片上传成功')
+        } catch (err) {
+          showMessage('图片上传失败：' + err.message, 'error')
+        }
+      }
+
+      window.saveProject = async (id) => {
+        const payload = {
+          title: document.getElementById('title').value,
+          year: document.getElementById('year').value,
+          category: document.getElementById('category').value,
+          order: Number(document.getElementById('order').value),
+          cover: document.getElementById('cover').value,
+          excerpt: document.getElementById('excerpt').value,
+          tags: currentTags,
+          role: document.getElementById('role').value,
+          client: document.getElementById('client').value,
+          featured: document.getElementById('featured').value === 'true',
+          hidden: document.getElementById('hidden').value === 'true',
+          customPage: document.getElementById('customPage').value,
+          body: document.getElementById('body').value,
+        }
+        try {
+          if (id) {
+            await db.collection('projects').doc(id).update(payload)
+          } else {
+            await db.collection('projects').add(payload)
+          }
+          showMessage('保存成功')
+          renderProjects()
+          triggerDeploy()
+        } catch (err) {
+          showMessage('保存失败：' + err.message, 'error')
+        }
+      }
+
+      async function renderSite() {
+        const { data } = await db.collection('site').limit(1).get()
+        const site = data[0] || {}
+        appEl.innerHTML = `
+          ${renderNav('site')}
+          <div class="card">
+            <h2>站点信息</h2>
+            <input type="hidden" id="siteId" value="${site._id || ''}" />
+            <div class="row">
+              <div>
+                <label>姓名</label>
+                <input type="text" id="name" value="${escapeHtml(site.name || '')}" />
+              </div>
+              <div>
+                <label>职业定位</label>
+                <input type="text" id="role" value="${escapeHtml(site.role || '')}" />
+              </div>
+            </div>
+            <label>邮箱</label>
+            <input type="text" id="email" value="${escapeHtml(site.email || '')}" />
+            <label>所在城市</label>
+            <input type="text" id="location" value="${escapeHtml(site.location || '')}" />
+            <label>一句话介绍</label>
+            <textarea id="tagline">${escapeHtml(site.tagline || '')}</textarea>
+            <label>首页简介</label>
+            <textarea id="intro">${escapeHtml(site.intro || '')}</textarea>
+            <label>社交链接（每行一个：平台名|链接）</label>
+            <textarea id="socials" placeholder="Behance|https://...\nLinkedIn|https://...">${escapeSocials(site.socials)}</textarea>
+            <div class="btn-group">
+              <button onclick="saveSite()">保存</button>
+            </div>
+          </div>
+        `
+        bindNav()
+      }
+
+      window.saveSite = async () => {
+        const id = document.getElementById('siteId').value
+        const socials = document.getElementById('socials').value
+          .split('\n')
+          .filter((l) => l.includes('|'))
+          .map((l) => {
+            const [label, url] = l.split('|')
+            return { label: label.trim(), url: url.trim() }
+          })
+        const payload = {
+          name: document.getElementById('name').value,
+          role: document.getElementById('role').value,
+          email: document.getElementById('email').value,
+          location: document.getElementById('location').value,
+          tagline: document.getElementById('tagline').value,
+          intro: document.getElementById('intro').value,
+          socials,
+        }
+        try {
+          if (id) {
+            await db.collection('site').doc(id).update(payload)
+          } else {
+            await db.collection('site').add(payload)
+          }
+          showMessage('保存成功')
+          triggerDeploy()
+        } catch (err) {
+          showMessage('保存失败：' + err.message, 'error')
+        }
+      }
+
+      async function renderAbout() {
+        const { data } = await db.collection('about').limit(1).get()
+        const about = data[0] || {}
+        appEl.innerHTML = `
+          ${renderNav('about')}
+          <div class="card">
+            <h2>关于我</h2>
+            <input type="hidden" id="aboutId" value="${about._id || ''}" />
+            <label>肖像照</label>
+            <input type="file" id="portraitFile" accept="image/*" />
+            <input type="hidden" id="portrait" value="${escapeHtml(about.portrait || '')}" />
+            ${about.portrait ? `<img src="${about.portrait}" class="preview-img" id="portraitPreview" />` : '<img class="preview-img hidden" id="portraitPreview" />'}
+            <label>技能分组（每行一个：分组名|技能1、技能2）</label>
+            <textarea id="skills" placeholder="工业设计|产品建模、手板制作\n交互设计|用户研究、原型测试">${escapeSkills(about.skills)}</textarea>
+            <label>个人简介（Markdown）</label>
+            <textarea id="body" style="min-height:240px;">${escapeHtml(about.body || '')}</textarea>
+            <div class="btn-group">
+              <button onclick="saveAbout()">保存</button>
+            </div>
+          </div>
+        `
+        bindNav()
+        document.getElementById('portraitFile').onchange = async (e) => {
+          const file = e.target.files[0]
+          if (file) await uploadImage(file, 'portrait')
+        }
+      }
+
+      window.saveAbout = async () => {
+        const id = document.getElementById('aboutId').value
+        const skills = document.getElementById('skills').value
+          .split('\n')
+          .filter((l) => l.includes('|'))
+          .map((l) => {
+            const [group, items] = l.split('|')
+            return { group: group.trim(), items: items.trim() }
+          })
+        const payload = {
+          portrait: document.getElementById('portrait').value,
+          skills,
+          body: document.getElementById('body').value,
+        }
+        try {
+          if (id) {
+            await db.collection('about').doc(id).update(payload)
+          } else {
+            await db.collection('about').add(payload)
+          }
+          showMessage('保存成功')
+          triggerDeploy()
+        } catch (err) {
+          showMessage('保存失败：' + err.message, 'error')
+        }
+      }
+
+      async function triggerDeploy() {
+        try {
+          await app.callFunction({ name: 'deploy-site', data: { secret: DEPLOY_SECRET } })
+          showMessage('已触发网站重新部署，约 1-2 分钟后生效')
+        } catch (err) {
+          console.error('trigger deploy failed:', err)
+          showMessage('部署触发失败：' + err.message, 'error')
+        }
+      }
+
+      function escapeHtml(text) {
+        if (text == null) return ''
+        return String(text)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+      }
+
+      function escapeSocials(socials) {
+        if (!Array.isArray(socials)) return ''
+        return socials.map((s) => `${s.label}|${s.url}`).join('\n')
+      }
+
+      function escapeSkills(skills) {
+        if (!Array.isArray(skills)) return ''
+        return skills.map((s) => `${s.group}|${s.items}`).join('\n')
+      }
+
+      checkLogin()
+    </script>
   </body>
 </html>

@@ -1,0 +1,15 @@
+{
+  "timeout": 20,
+  "memorySize": 128,
+  "runtime": "Nodejs18.15",
+  "handler": "index.main",
+  "triggers": [
+    {
+      "name": "deploy-site-http",
+      "type": "http",
+      "path": "/deploy-site",
+      "methods": ["POST", "OPTIONS"]
+    }
+  ],
+  "environment": {}
+}
