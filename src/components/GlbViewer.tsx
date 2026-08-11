@@ -49,13 +49,13 @@ export default function GlbViewer({
     renderer.setSize(wrap.clientWidth, wrap.clientHeight)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = 1.0
+    renderer.toneMappingExposure = 1.2
     renderer.shadowMap.enabled = true
     renderer.shadowMap.type = THREE.PCFSoftShadowMap
 
     const pmremGenerator = new THREE.PMREMGenerator(renderer)
     const roomEnv = new RoomEnvironment()
-    scene.environment = pmremGenerator.fromScene(roomEnv, 0.15).texture
+    scene.environment = pmremGenerator.fromScene(roomEnv, 0.04).texture
 
     const controls = new OrbitControls(camera, canvas)
     controls.enableDamping = true
@@ -65,23 +65,39 @@ export default function GlbViewer({
     controls.maxPolarAngle = Math.PI / 1.8
     controls.target.set(0, 0.3, 0)
 
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x888888, 1.2)
-    hemiLight.position.set(0, 5, 0)
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x888888, 2.5)
+    hemiLight.position.set(0, 8, 0)
     scene.add(hemiLight)
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0)
     scene.add(ambientLight)
 
-    const spotLight = new THREE.SpotLight(0xffffff, 30)
-    spotLight.position.set(4, 6, 4)
-    spotLight.angle = Math.PI / 4
-    spotLight.penumbra = 0.4
+    // 主光源：提供清晰的高光和金属反射
+    const keyLight = new THREE.DirectionalLight(0xffffff, 3.0)
+    keyLight.position.set(5, 8, 5)
+    keyLight.castShadow = true
+    keyLight.shadow.mapSize.width = 1024
+    keyLight.shadow.mapSize.height = 1024
+    scene.add(keyLight)
+
+    const spotLight = new THREE.SpotLight(0xffffff, 80)
+    spotLight.position.set(4, 7, 4)
+    spotLight.angle = Math.PI / 3
+    spotLight.penumbra = 0.5
     spotLight.castShadow = true
     scene.add(spotLight)
 
-    const fillLight = new THREE.PointLight(0xcceeff, 4, 12)
-    fillLight.position.set(-2, 1.5, 2)
+    const fillLight = new THREE.PointLight(0xcceeff, 10, 20)
+    fillLight.position.set(-3, 2.5, 3)
     scene.add(fillLight)
+
+    // 轮廓光：从侧后方提亮金属边缘
+    const rimLight = new THREE.SpotLight(0xffeedd, 60)
+    rimLight.position.set(-4, 5, -5)
+    rimLight.lookAt(0, 0, 0)
+    rimLight.angle = Math.PI / 3
+    rimLight.penumbra = 0.6
+    scene.add(rimLight)
 
     const groundGeo = new THREE.PlaneGeometry(20, 20)
     const groundMat = new THREE.MeshStandardMaterial({
