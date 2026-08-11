@@ -1268,7 +1268,7 @@ async function initThreeJS() {
   const crosshair = document.getElementById('crosshair');
 
   // 动态导入 Three.js 模块（使用完整 URL，避免 importmap 兼容问题）
-  let THREE, GLTFLoader, OrbitControls, RoomEnvironment;
+  let THREE, GLTFLoader, DRACOLoader, OrbitControls, RoomEnvironment;
   try {
     THREE = await import('three');
     console.log('[Three.js] three module loaded:', THREE && THREE.Scene ? 'OK' : 'FAIL');
@@ -1282,6 +1282,14 @@ async function initThreeJS() {
     console.log('[Three.js] GLTFLoader loaded:', GLTFLoader ? 'OK' : 'FAIL');
   } catch (e) {
     console.error('[Three.js] failed to load GLTFLoader:', e && e.message ? e.message : e);
+    throw e;
+  }
+  try {
+    const dracoMod = await import('three/addons/loaders/DRACOLoader.js');
+    DRACOLoader = dracoMod.DRACOLoader;
+    console.log('[Three.js] DRACOLoader loaded:', DRACOLoader ? 'OK' : 'FAIL');
+  } catch (e) {
+    console.error('[Three.js] failed to load DRACOLoader:', e && e.message ? e.message : e);
     throw e;
   }
   try {
@@ -1358,8 +1366,11 @@ async function initThreeJS() {
 
   scene3D = { scene, camera, renderer, controls, model: null, ambientMeshes: [], envLight, spotLight };
 
-  // 加载 GLB 模型
+  // 加载 GLB 模型（支持 Draco 压缩）
+  const dracoLoader = new DRACOLoader();
+  dracoLoader.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
   const loader = new GLTFLoader();
+  loader.setDRACOLoader(dracoLoader);
   loader.load(
     GLB_URL,
     (gltf) => {
