@@ -308,7 +308,7 @@ async function triggerDeploy() {
 }
 
 async function uploadBase64(cloudPath, base64Data) {
-  const match = base64Data.match(/^data:([\w\/\+]+);base64,(.*)$/)
+  const match = base64Data.match(/^data:([^;]+);base64,(.*)$/)
   const buffer = match ? Buffer.from(match[2], 'base64') : Buffer.from(base64Data, 'base64')
   const tmpFile = path.join('/tmp', `${Date.now()}-${path.basename(cloudPath)}`)
   fs.writeFileSync(tmpFile, buffer)
@@ -412,8 +412,8 @@ exports.main = async (event, context) => {
         const chunkRows = await pgQuery(`SELECT data FROM upload_chunks WHERE upload_id = ${pgEscape(id)} ORDER BY chunk_index ASC`)
         const buffers = chunkRows.map((row) => {
           const chunkData = row[0] || ''
-          const match = chunkData.match(/^data:[\w\/\+]+;base64,(.*)$/)
-          return Buffer.from(match ? match[1] : chunkData, 'base64')
+          const match = chunkData.match(/^data:([^;]+);base64,(.*)$/)
+          return Buffer.from(match ? match[2] : chunkData, 'base64')
         })
         const merged = Buffer.concat(buffers)
 
