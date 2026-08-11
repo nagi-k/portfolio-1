@@ -10,3 +10,4 @@ dist-ssr
 .env
 .env.local
 cloudbase-functions/*/node_modules
+.trae-html-share-packages
