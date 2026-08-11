@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>车载HMI实时3D可视化系统 | GLB 实时渲染</title>
+<script async src="https://unpkg.com/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
 <style>
 /* ============================================================
    CSS 变量：统一颜色 / 间距 / 圆角
@@ -1247,7 +1256,7 @@ let scene3D = {
    【需替换】GLB_URL 改为你的实际 GLB 模型路径。
    建议将 .glb 文件放在页面同级目录的 assets/ 文件夹中。
    ============================================================ */
-const GLB_URL = 'assets/test-model.glb'; // 【测试中】数采器.glb
+const GLB_URL = 'assets/test-model.glb?v=1'; // 【测试中】数采器.glb
 
 async function initThreeJS() {
   const canvas = document.getElementById('three-canvas');
@@ -1261,14 +1270,14 @@ async function initThreeJS() {
   // 动态导入 Three.js 模块（使用完整 URL，避免 importmap 兼容问题）
   let THREE, GLTFLoader, OrbitControls, RoomEnvironment;
   try {
-    THREE = await import('https://unpkg.com/three@0.160.0/build/three.module.js');
+    THREE = await import('three');
     console.log('[Three.js] three module loaded:', THREE && THREE.Scene ? 'OK' : 'FAIL');
   } catch (e) {
     console.error('[Three.js] failed to load three module:', e && e.message ? e.message : e);
     throw e;
   }
   try {
-    const gltfMod = await import('https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js');
+    const gltfMod = await import('three/addons/loaders/GLTFLoader.js');
     GLTFLoader = gltfMod.GLTFLoader;
     console.log('[Three.js] GLTFLoader loaded:', GLTFLoader ? 'OK' : 'FAIL');
   } catch (e) {
@@ -1276,7 +1285,7 @@ async function initThreeJS() {
     throw e;
   }
   try {
-    const ctrlMod = await import('https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js');
+    const ctrlMod = await import('three/addons/controls/OrbitControls.js');
     OrbitControls = ctrlMod.OrbitControls;
     console.log('[Three.js] OrbitControls loaded:', OrbitControls ? 'OK' : 'FAIL');
   } catch (e) {
@@ -1284,7 +1293,7 @@ async function initThreeJS() {
     throw e;
   }
   try {
-    const envMod = await import('https://unpkg.com/three@0.160.0/examples/jsm/environments/RoomEnvironment.js');
+    const envMod = await import('three/addons/environments/RoomEnvironment.js');
     RoomEnvironment = envMod.RoomEnvironment;
     console.log('[Three.js] RoomEnvironment loaded:', RoomEnvironment ? 'OK' : 'FAIL');
   } catch (e) {
