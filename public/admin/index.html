@@ -371,7 +371,7 @@
       }
 
       async function uploadFileChunked(cloudPath, file, onProgress) {
-        const maxChunkSize = 64 * 1024 // 64KB 原始字节，base64 后约 90KB，避免触发云函数请求体限制
+        const maxChunkSize = 16 * 1024 // 16KB 原始字节，base64 后约 22KB，低于 CloudBase 请求体限制
         const totalChunks = Math.ceil(file.size / maxChunkSize)
         const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
         let lastRes = null
