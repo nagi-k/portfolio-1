@@ -20,6 +20,7 @@ const GH_REF = process.env.GH_REF || 'main'
 let app
 let pg
 let storage
+let tablesEnsured = false
 
 function initCloudBase() {
   if (!app) {
@@ -88,11 +89,29 @@ async function pgQuery(sql) {
   return res.Rows ? res.Rows.map((s) => JSON.parse(s)) : []
 }
 
-async function pgExec(sql) {
-  await pg.executePGSql({ Sql: sql, Role: 'cloudbase_postgres' })
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function pgExec(sql, retries = 3) {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await pg.executePGSql({ Sql: sql, Role: 'cloudbase_postgres' })
+    } catch (err) {
+      const msg = err.message || String(err)
+      const isRateLimit = msg.includes('frequency limit') || msg.includes('exceeds the frequency limit')
+      if (isRateLimit && i < retries) {
+        console.warn(`pgExec rate limited, retry ${i + 1}/${retries}`)
+        await sleep(200 + i * 200)
+        continue
+      }
+      throw err
+    }
+  }
 }
 
 async function ensureTables() {
+  if (tablesEnsured) return
   await pgExec(`
     CREATE TABLE IF NOT EXISTS projects (
       id SERIAL PRIMARY KEY,
@@ -115,12 +134,14 @@ async function ensureTables() {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `)
+  await sleep(80)
   // 兼容旧表：补充 glb_model_url 字段
   try {
     await pgExec(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS glb_model_url TEXT`)
   } catch (e) {
     console.log('add glb_model_url column:', e.message)
   }
+  await sleep(80)
   await pgExec(`
     CREATE TABLE IF NOT EXISTS site (
       id SERIAL PRIMARY KEY,
@@ -134,6 +155,7 @@ async function ensureTables() {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `)
+  await sleep(80)
   await pgExec(`
     CREATE TABLE IF NOT EXISTS about (
       id SERIAL PRIMARY KEY,
@@ -143,6 +165,7 @@ async function ensureTables() {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `)
+  await sleep(80)
   await pgExec(`
     CREATE TABLE IF NOT EXISTS homepage_3d (
       id SERIAL PRIMARY KEY,
@@ -150,6 +173,7 @@ async function ensureTables() {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `)
+  tablesEnsured = true
 }
 
 function toBool(val) {
