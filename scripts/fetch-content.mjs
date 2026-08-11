@@ -83,6 +83,33 @@ async function ensureSchema(pg) {
   }
 }
 
+async function downloadGlbFiles(app, projects, homepage3d) {
+  const urls = new Set()
+  projects.forEach((p) => { if (p.glbModelUrl) urls.add(p.glbModelUrl) })
+  homepage3d.forEach((m) => { if (m.glbUrl) urls.add(m.glbUrl) })
+
+  if (urls.size === 0) return
+
+  console.log(`⬇ Downloading ${urls.size} GLB file(s) from CloudBase storage...`)
+  for (const url of urls) {
+    // 只下载托管在 CloudBase 云存储中的内部路径
+    if (!url.startsWith('/models/') && !url.startsWith('/hmi-projects/assets/')) {
+      console.log(`  skipped (external): ${url}`)
+      continue
+    }
+    const cloudPath = url.startsWith('/') ? url.slice(1) : url
+    const localPath = path.join(process.cwd(), 'public', url)
+    try {
+      fs.mkdirSync(path.dirname(localPath), { recursive: true })
+      await app.storage.downloadFile({ cloudPath, localPath })
+      console.log(`✓ Downloaded ${cloudPath}`)
+    } catch (err) {
+      console.warn(`⚠ Failed to download ${cloudPath}:`, err.message)
+      if (process.env.CI) throw err
+    }
+  }
+}
+
 async function fetchFromCloudBase() {
   if (!envId || !secretId || !secretKey) {
     throw new Error('Missing CloudBase credentials')
@@ -116,6 +143,9 @@ async function fetchFromCloudBase() {
   const homepage3dModels = homepage3dRows.length
     ? (typeof homepage3dRows[0][1] === 'string' ? JSON.parse(homepage3dRows[0][1]) : homepage3dRows[0][1] || [])
     : []
+
+  // 把 CloudBase 云存储里的 GLB 文件下载到 public 目录，构建时一起部署到 Hosting
+  await downloadGlbFiles(app, projects, homepage3dModels)
 
   return {
     projects,
