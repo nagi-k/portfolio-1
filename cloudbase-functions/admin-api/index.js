@@ -20,6 +20,7 @@ const GH_REF = process.env.GH_REF || 'main'
 let app
 let pg
 let storage
+let hosting
 
 function initCloudBase() {
   if (!app) {
@@ -31,6 +32,7 @@ function initCloudBase() {
     })
     pg = app.database
     storage = app.storage
+    hosting = app.hosting
   }
 }
 
@@ -136,6 +138,18 @@ async function ensureTables() {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `)
+  await pgExec(`
+    CREATE TABLE IF NOT EXISTS hmi_assets (
+      id SERIAL PRIMARY KEY,
+      project_id TEXT UNIQUE NOT NULL,
+      type TEXT,
+      path TEXT NOT NULL,
+      url TEXT,
+      version INTEGER DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
 }
 
 function toBool(val) {
@@ -183,6 +197,19 @@ function normalizeAbout(row) {
     portrait: row[1],
     skills: typeof row[2] === 'string' ? JSON.parse(row[2]) : row[2] || [],
     body: row[3],
+  }
+}
+
+function normalizeHmiAsset(row) {
+  return {
+    id: Number(row[0]),
+    projectId: row[1],
+    type: row[2],
+    path: row[3],
+    url: row[4],
+    version: Number(row[5]) || 1,
+    createdAt: row[6],
+    updatedAt: row[7],
   }
 }
 
@@ -264,6 +291,42 @@ async function uploadBase64(cloudPath, base64Data) {
   fs.writeFileSync(tmpFile, buffer)
   try {
     const res = await storage.uploadFile({ localPath: tmpFile, cloudPath })
+    return res
+  } finally {
+    try {
+      fs.unlinkSync(tmpFile)
+    } catch (e) {}
+  }
+}
+
+async function uploadToHosting(cloudPath, base64Data) {
+  const match = base64Data.match(/^data:([\w\/\+]+);base64,(.*)$/)
+  const buffer = match ? Buffer.from(match[2], 'base64') : Buffer.from(base64Data, 'base64')
+  const tmpFile = path.join('/tmp', `${Date.now()}-${path.basename(cloudPath)}`)
+  fs.writeFileSync(tmpFile, buffer)
+  try {
+    const safeCloudPath = cloudPath.startsWith('/') ? cloudPath.slice(1) : cloudPath
+    const res = await hosting.uploadFiles({
+      localPath: tmpFile,
+      cloudPath: safeCloudPath,
+    })
+    return res
+  } finally {
+    try {
+      fs.unlinkSync(tmpFile)
+    } catch (e) {}
+  }
+}
+
+async function writeJsonToHosting(cloudPath, obj) {
+  const tmpFile = path.join('/tmp', `${Date.now()}-${path.basename(cloudPath)}`)
+  fs.writeFileSync(tmpFile, JSON.stringify(obj, null, 2))
+  try {
+    const safeCloudPath = cloudPath.startsWith('/') ? cloudPath.slice(1) : cloudPath
+    const res = await hosting.uploadFiles({
+      localPath: tmpFile,
+      cloudPath: safeCloudPath,
+    })
     return res
   } finally {
     try {
@@ -466,6 +529,63 @@ exports.main = async (event, context) => {
         `)
       }
       return response(200, { ok: true }, cors)
+    }
+
+    // ── hmi assets ──
+    if (method === 'GET' && reqPath === '/hmi-assets') {
+      const rows = await pgQuery('SELECT * FROM hmi_assets ORDER BY project_id ASC')
+      return response(200, { assets: rows.map(normalizeHmiAsset) }, cors)
+    }
+
+    if (method === 'GET' && reqPath.startsWith('/hmi-assets/')) {
+      const projectId = reqPath.replace('/hmi-assets/', '')
+      const rows = await pgQuery(`SELECT * FROM hmi_assets WHERE project_id = ${pgEscape(projectId)}`)
+      if (!rows.length) {
+        return response(200, { asset: null }, cors)
+      }
+      return response(200, { asset: normalizeHmiAsset(rows[0]) }, cors)
+    }
+
+    if (method === 'POST' && reqPath.startsWith('/hmi-assets/')) {
+      const projectId = reqPath.replace('/hmi-assets/', '').replace(/\/upload$/, '')
+      if (!reqPath.endsWith('/upload') || !projectId) {
+        return response(404, { error: '接口不存在' }, cors)
+      }
+      const { data, type = 'glb' } = body
+      if (!data) {
+        return response(400, { error: '缺少 data' }, cors)
+      }
+      if (!data.startsWith('data:model/gltf-binary') && !data.startsWith('data:application/octet-stream')) {
+        return response(400, { error: '只支持 .glb 模型文件' }, cors)
+      }
+
+      const version = Date.now()
+      const glbPath = `uploads/models/${projectId}.glb`
+      const configPath = `uploads/models/${projectId}-config.json`
+
+      await uploadToHosting(glbPath, data)
+      const config = { glbUrl: `/${glbPath}?v=${version}`, projectId, version, updatedAt: new Date().toISOString() }
+      await writeJsonToHosting(configPath, config)
+
+      const existing = await pgQuery(`SELECT id FROM hmi_assets WHERE project_id = ${pgEscape(projectId)}`)
+      if (existing.length) {
+        await pgExec(`
+          UPDATE hmi_assets SET
+            type = ${pgEscape(type)},
+            path = ${pgEscape(glbPath)},
+            url = ${pgEscape(config.glbUrl)},
+            version = ${pgEscape(version)},
+            updated_at = CURRENT_TIMESTAMP
+          WHERE project_id = ${pgEscape(projectId)}
+        `)
+      } else {
+        await pgExec(`
+          INSERT INTO hmi_assets (project_id, type, path, url, version)
+          VALUES (${pgEscape(projectId)}, ${pgEscape(type)}, ${pgEscape(glbPath)}, ${pgEscape(config.glbUrl)}, ${pgEscape(version)})
+        `)
+      }
+
+      return response(200, { ok: true, asset: config }, cors)
     }
 
     // ── deploy ──

@@ -1256,7 +1256,21 @@ let scene3D = {
    【需替换】GLB_URL 改为你的实际 GLB 模型路径。
    建议将 .glb 文件放在页面同级目录的 assets/ 文件夹中。
    ============================================================ */
-const GLB_URL = 'assets/test-model.glb?v=1'; // 【测试中】数采器.glb
+let GLB_URL = 'assets/test-model.glb?v=1'; // 默认兜底路径
+
+async function loadGlbConfig() {
+  try {
+    const res = await fetch('/uploads/models/project2-config.json?v=' + Date.now())
+    if (!res.ok) return
+    const config = await res.json()
+    if (config && config.glbUrl) {
+      GLB_URL = config.glbUrl
+      console.log('[GLB] config loaded:', GLB_URL)
+    }
+  } catch (e) {
+    console.warn('[GLB] failed to load config, fallback to default:', e)
+  }
+}
 
 async function initThreeJS() {
   const canvas = document.getElementById('three-canvas');
@@ -1471,8 +1485,8 @@ async function initThreeJS() {
   wrap.addEventListener('mouseleave', () => { crosshair.style.display = 'none'; });
 }
 
-// 启动 Three.js
-initThreeJS().catch(err => {
+// 启动 Three.js（先加载 GLB 配置）
+loadGlbConfig().then(() => initThreeJS()).catch(err => {
   console.error('[Three.js] 初始化失败：', err);
   const loadingEl = document.getElementById('scene-loading');
   const fallbackEl = document.getElementById('scene-fallback');
