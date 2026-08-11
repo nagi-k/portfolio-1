@@ -37,7 +37,8 @@ function normalizeProject(row) {
     hidden: toBool(row[11]),
     order: Number(row[12]),
     customPage: row[13],
-    body: row[14],
+    glbModelUrl: row[14] || '',
+    body: row[15],
   }
 }
 
@@ -77,20 +78,26 @@ async function fetchFromCloudBase() {
 
   const pg = app.database
 
-  const [projectsRes, siteRes, aboutRes] = await Promise.all([
+  const [projectsRes, siteRes, aboutRes, homepage3dRes] = await Promise.all([
     pg.executePGSql({ Sql: 'SELECT * FROM projects ORDER BY "order" ASC, id ASC', Role: 'cloudbase_postgres' }),
     pg.executePGSql({ Sql: 'SELECT * FROM site LIMIT 1', Role: 'cloudbase_postgres' }),
     pg.executePGSql({ Sql: 'SELECT * FROM about LIMIT 1', Role: 'cloudbase_postgres' }),
+    pg.executePGSql({ Sql: 'SELECT * FROM homepage_3d LIMIT 1', Role: 'cloudbase_postgres' }),
   ])
 
   const projects = (projectsRes.Rows || []).map((s) => normalizeProject(JSON.parse(s))).filter((p) => !p.hidden)
   const siteRows = (siteRes.Rows || []).map((s) => normalizeSite(JSON.parse(s)))
   const aboutRows = (aboutRes.Rows || []).map((s) => normalizeAbout(JSON.parse(s)))
+  const homepage3dRows = (homepage3dRes.Rows || []).map((s) => JSON.parse(s))
+  const homepage3dModels = homepage3dRows.length
+    ? (typeof homepage3dRows[0][1] === 'string' ? JSON.parse(homepage3dRows[0][1]) : homepage3dRows[0][1] || [])
+    : []
 
   return {
     projects,
     site: siteRows[0] || {},
     about: aboutRows[0] || {},
+    homepage3d: homepage3dModels,
   }
 }
 
@@ -104,7 +111,7 @@ function fetchFromMarkdown() {
       const raw = fs.readFileSync(path.join(projectsDir, f), 'utf8')
       const { data, body } = parseFrontmatter(raw)
       const slug = f.replace(/\.md$/, '')
-      return { ...data, slug, body }
+      return { ...data, slug, body, glbModelUrl: data.glbModelUrl || '' }
     })
     .filter((p) => !p.hidden)
     .sort((a, b) => a.order - b.order)
@@ -121,7 +128,21 @@ function fetchFromMarkdown() {
     projects,
     site: loadPage('site'),
     about: loadPage('about'),
+    homepage3d: [],
   }
+}
+
+function writeProject2Config(projects) {
+  const project2 = projects.find((p) => p.customPage === '/hmi-projects/project2-unity-hmi.html')
+  const configDir = path.join(process.cwd(), 'public', 'hmi-projects', 'config')
+  const configPath = path.join(configDir, 'project2.json')
+  const config = {
+    glbUrl: project2?.glbModelUrl || '/hmi-projects/assets/test-model.glb',
+    updatedAt: new Date().toISOString(),
+  }
+  fs.mkdirSync(configDir, { recursive: true })
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
+  console.log(`✓ Wrote project2 config: ${config.glbUrl}`)
 }
 
 async function main() {
@@ -137,11 +158,15 @@ async function main() {
     }
     console.warn('⚠ CloudBase fetch failed, falling back to markdown:', err.message)
     data = fetchFromMarkdown()
+    data.homepage3d = []
     console.log(`✓ Loaded ${data.projects.length} projects from markdown`)
   }
 
   fs.mkdirSync(path.dirname(outPath), { recursive: true })
   fs.writeFileSync(outPath, JSON.stringify(data, null, 2))
+
+  // 为 HMI 项目二生成 GLB 配置文件
+  writeProject2Config(data.projects || [])
 }
 
 main().catch((err) => {

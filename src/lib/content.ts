@@ -14,6 +14,7 @@ export interface Project {
   hidden: boolean
   order: number
   customPage?: string
+  glbModelUrl?: string
   body: string
 }
 
@@ -33,10 +34,17 @@ export interface AboutInfo {
   body: string
 }
 
+export interface Homepage3DModel {
+  title: string
+  glbUrl: string
+  thumbnail?: string
+}
+
 export interface ContentData {
   projects: Project[]
   site: SiteInfo
   about: AboutInfo
+  homepage3d: Homepage3DModel[]
 }
 
 const typedData = data as ContentData
@@ -72,3 +80,6 @@ export function getProject(slug: string) {
 /* ---------- 站点信息 / 关于 ---------- */
 export const site = typedData.site
 export const about = typedData.about
+
+/* ---------- 首页 3D 精选模型 ---------- */
+export const homepage3d: Homepage3DModel[] = typedData.homepage3d || []

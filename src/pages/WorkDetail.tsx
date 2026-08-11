@@ -1,8 +1,10 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import Markdown from '../components/Markdown'
 import Reveal from '../components/Reveal'
 import { getProject, projects, resolveAsset } from '../lib/content'
+
+const GlbViewer = lazy(() => import('../components/GlbViewer'))
 
 export default function WorkDetail() {
   const { slug } = useParams()
@@ -92,6 +94,23 @@ export default function WorkDetail() {
           />
         </div>
       </Reveal>
+
+      {/* 工业设计作品 3D 预览 */}
+      {project.category === '工业设计' && project.glbModelUrl && (
+        <section className="container-site pb-14 md:pb-24">
+          <Reveal>
+            <div className="mb-6 flex items-end justify-between">
+              <div>
+                <p className="section-label">3D Preview</p>
+                <h2 className="mt-2 text-xl font-light md:text-2xl">三维模型预览</h2>
+              </div>
+            </div>
+            <Suspense fallback={<div className="flex aspect-video w-full items-center justify-center rounded-xl bg-[#3a3a3a] text-sm text-white/50">3D 引擎加载中…</div>}>
+              <GlbViewer glbUrl={resolveAsset(project.glbModelUrl)} aspect="video" />
+            </Suspense>
+          </Reveal>
+        </section>
+      )}
 
       {/* 正文：背景 / 问题 / 过程 / 成果（Markdown） */}
       <div className="container-site py-14 md:py-24">

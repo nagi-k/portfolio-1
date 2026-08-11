@@ -1,9 +1,58 @@
+import { lazy, Suspense, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, ArrowUpRight } from 'lucide-react'
 import ProjectCarousel from '../components/ProjectCarousel'
 import Reveal from '../components/Reveal'
-import { categories, featuredProjects, projects, projectsByCategory, site } from '../lib/content'
+
+const GlbViewer = lazy(() => import('../components/GlbViewer'))
+import { categories, featuredProjects, homepage3d, projects, projectsByCategory, site } from '../lib/content'
 import { resolveAsset } from '../lib/content'
+
+function Homepage3DViewer() {
+  const models = homepage3d.filter((m) => m.glbUrl)
+  const [active, setActive] = useState(0)
+
+  if (models.length === 0) return null
+
+  return (
+    <section className="border-t border-line bg-white py-14 md:py-24">
+      <div className="container-site">
+        <Reveal>
+          <div className="mb-6 flex items-end justify-between md:mb-10">
+            <div>
+              <p className="section-label">Featured 3D</p>
+              <h2 className="mt-2 text-xl font-light md:text-3xl">工业设计 · 精选模型</h2>
+            </div>
+          </div>
+        </Reveal>
+
+        <Reveal delay={80}>
+          <Suspense fallback={<div className="flex aspect-video w-full items-center justify-center rounded-xl bg-[#3a3a3a] text-sm text-white/50">3D 引擎加载中…</div>}>
+            <GlbViewer glbUrl={resolveAsset(models[active].glbUrl)} aspect="video" />
+          </Suspense>
+        </Reveal>
+
+        <Reveal delay={160}>
+          <div className="mt-6 flex flex-wrap gap-3">
+            {models.map((m, i) => (
+              <button
+                key={i}
+                onClick={() => setActive(i)}
+                className={`rounded-full border px-4 py-2 text-sm transition-all md:px-5 md:py-2.5 ${
+                  active === i
+                    ? 'border-accent bg-accent text-white'
+                    : 'border-line bg-white text-ink-soft hover:border-accent hover:text-accent'
+                }`}
+              >
+                {m.title || `模型 ${i + 1}`}
+              </button>
+            ))}
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  )
+}
 
 function CategorySection({ category }: { category: string }) {
   const items = projectsByCategory(category)
@@ -157,7 +206,10 @@ export default function Home() {
 
       {/* 四大分类作品展示 */}
       {categories.map((cat) => (
-        <CategorySection key={cat} category={cat} />
+        <div key={cat}>
+          {cat === '工业设计' && <Homepage3DViewer />}
+          <CategorySection category={cat} />
+        </div>
       ))}
 
       {/* 项目索引 */}

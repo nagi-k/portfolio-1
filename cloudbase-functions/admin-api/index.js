@@ -109,11 +109,18 @@ async function ensureTables() {
       hidden BOOLEAN DEFAULT FALSE,
       "order" INTEGER DEFAULT 99,
       custom_page TEXT,
+      glb_model_url TEXT,
       body TEXT DEFAULT '',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `)
+  // 兼容旧表：补充 glb_model_url 字段
+  try {
+    await pgExec(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS glb_model_url TEXT`)
+  } catch (e) {
+    console.log('add glb_model_url column:', e.message)
+  }
   await pgExec(`
     CREATE TABLE IF NOT EXISTS site (
       id SERIAL PRIMARY KEY,
@@ -133,6 +140,13 @@ async function ensureTables() {
       portrait TEXT,
       skills JSONB DEFAULT '[]'::jsonb,
       body TEXT DEFAULT '',
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
+  await pgExec(`
+    CREATE TABLE IF NOT EXISTS homepage_3d (
+      id SERIAL PRIMARY KEY,
+      models JSONB NOT NULL DEFAULT '[]'::jsonb,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `)
@@ -160,7 +174,8 @@ function normalizeProject(row) {
     hidden: toBool(row[11]),
     order: Number(row[12]),
     customPage: row[13],
-    body: row[14],
+    glbModelUrl: row[14] || '',
+    body: row[15],
   }
 }
 
@@ -333,10 +348,12 @@ exports.main = async (event, context) => {
       if (!cloudPath || !data) {
         return response(400, { error: '缺少 cloudPath 或 data' }, cors)
       }
-      // 安全校验：只允许上传到 images/uploads/
+      // 安全校验：只允许上传到 images/uploads/、models/、hmi-projects/assets/
       const safePath = cloudPath.replace(/^\/+/, '')
-      if (!safePath.startsWith('images/uploads/')) {
-        return response(400, { error: '只能上传到 images/uploads/ 目录' }, cors)
+      const allowedPrefixes = ['images/uploads/', 'models/', 'hmi-projects/assets/']
+      const allowed = allowedPrefixes.some((prefix) => safePath.startsWith(prefix))
+      if (!allowed) {
+        return response(400, { error: '只能上传到 images/uploads/、models/ 或 hmi-projects/assets/ 目录' }, cors)
       }
       await uploadBase64(safePath, data)
       return response(200, { ok: true, url: assetUrl(safePath), cloudPath: safePath }, cors)
@@ -365,12 +382,12 @@ exports.main = async (event, context) => {
         return response(409, { error: 'slug 已存在' }, cors)
       }
       await pgExec(`
-        INSERT INTO projects (slug, title, year, category, cover, excerpt, tags, role, client, featured, hidden, "order", custom_page, body)
+        INSERT INTO projects (slug, title, year, category, cover, excerpt, tags, role, client, featured, hidden, "order", custom_page, glb_model_url, body)
         VALUES (
           ${pgEscape(p.slug)}, ${pgEscape(p.title)}, ${pgEscape(p.year || '')}, ${pgEscape(p.category || '工业设计')},
           ${pgEscape(p.cover || '')}, ${pgEscape(p.excerpt || '')}, ${pgEscape(p.tags || [])}, ${pgEscape(p.role || '')},
           ${pgEscape(p.client || '')}, ${pgEscape(!!p.featured)}, ${pgEscape(!!p.hidden)}, ${pgEscape(Number(p.order) || 99)},
-          ${pgEscape(p.customPage || '')}, ${pgEscape(p.body || '')}
+          ${pgEscape(p.customPage || '')}, ${pgEscape(p.glbModelUrl || '')}, ${pgEscape(p.body || '')}
         )
       `)
       return response(200, { ok: true, slug: p.slug }, cors)
@@ -393,6 +410,7 @@ exports.main = async (event, context) => {
           hidden = ${pgEscape(!!p.hidden)},
           "order" = ${pgEscape(Number(p.order) || 99)},
           custom_page = ${pgEscape(p.customPage || '')},
+          glb_model_url = ${pgEscape(p.glbModelUrl || '')},
           body = ${pgEscape(p.body || '')},
           updated_at = CURRENT_TIMESTAMP
         WHERE slug = ${pgEscape(slug)}
@@ -464,6 +482,27 @@ exports.main = async (event, context) => {
           INSERT INTO about (portrait, skills, body)
           VALUES (${pgEscape(a.portrait || '')}, ${pgEscape(a.skills || [])}, ${pgEscape(a.body || '')})
         `)
+      }
+      return response(200, { ok: true }, cors)
+    }
+
+    // ── homepage 3D models ──
+    if (method === 'GET' && reqPath === '/homepage-3d') {
+      const rows = await pgQuery('SELECT * FROM homepage_3d LIMIT 1')
+      const models = rows.length ? (typeof rows[0][1] === 'string' ? JSON.parse(rows[0][1]) : rows[0][1] || []) : []
+      return response(200, { models }, cors)
+    }
+
+    if (method === 'PUT' && reqPath === '/homepage-3d') {
+      const models = Array.isArray(body.models) ? body.models : []
+      const rows = await pgQuery('SELECT id FROM homepage_3d LIMIT 1')
+      if (rows.length) {
+        await pgExec(`
+          UPDATE homepage_3d SET models = ${pgEscape(models)}, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ${pgEscape(rows[0][0])}
+        `)
+      } else {
+        await pgExec(`INSERT INTO homepage_3d (models) VALUES (${pgEscape(models)})`)
       }
       return response(200, { ok: true }, cors)
     }
