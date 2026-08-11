@@ -12,8 +12,6 @@ function Homepage3DViewer() {
   const models = homepage3d.filter((m) => m.glbUrl)
   const [active, setActive] = useState(0)
 
-  if (models.length === 0) return null
-
   return (
     <section className="border-t border-line bg-white py-14 md:py-24">
       <div className="container-site">
@@ -26,29 +24,40 @@ function Homepage3DViewer() {
           </div>
         </Reveal>
 
-        <Reveal delay={80}>
-          <Suspense fallback={<div className="flex aspect-video w-full items-center justify-center rounded-xl bg-[#3a3a3a] text-sm text-white/50">3D 引擎加载中…</div>}>
-            <GlbViewer glbUrl={resolveAsset(models[active].glbUrl)} aspect="video" />
-          </Suspense>
-        </Reveal>
+        {models.length > 0 ? (
+          <>
+            <Reveal delay={80}>
+              <Suspense fallback={<div className="flex aspect-video w-full items-center justify-center rounded-xl bg-[#3a3a3a] text-sm text-white/50">3D 引擎加载中…</div>}>
+                <GlbViewer glbUrl={resolveAsset(models[active].glbUrl)} aspect="video" />
+              </Suspense>
+            </Reveal>
 
-        <Reveal delay={160}>
-          <div className="mt-6 flex flex-wrap gap-3">
-            {models.map((m, i) => (
-              <button
-                key={i}
-                onClick={() => setActive(i)}
-                className={`rounded-full border px-4 py-2 text-sm transition-all md:px-5 md:py-2.5 ${
-                  active === i
-                    ? 'border-accent bg-accent text-white'
-                    : 'border-line bg-white text-ink-soft hover:border-accent hover:text-accent'
-                }`}
-              >
-                {m.title || `模型 ${i + 1}`}
-              </button>
-            ))}
-          </div>
-        </Reveal>
+            <Reveal delay={160}>
+              <div className="mt-6 flex flex-wrap gap-3">
+                {models.map((m, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActive(i)}
+                    className={`rounded-full border px-4 py-2 text-sm transition-all md:px-5 md:py-2.5 ${
+                      active === i
+                        ? 'border-accent bg-accent text-white'
+                        : 'border-line bg-white text-ink-soft hover:border-accent hover:text-accent'
+                    }`}
+                  >
+                    {m.title || `模型 ${i + 1}`}
+                  </button>
+                ))}
+              </div>
+            </Reveal>
+          </>
+        ) : (
+          <Reveal delay={80}>
+            <div className="flex aspect-video w-full flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-line bg-surface text-center">
+              <div className="text-4xl text-ink-mute">3D</div>
+              <p className="text-sm text-ink-soft">暂无精选 3D 模型，请前往后台「首页3D模型」上传</p>
+            </div>
+          </Reveal>
+        )}
       </div>
     </section>
   )

@@ -344,7 +344,7 @@ exports.main = async (event, context) => {
 
     // ── upload ──
     if (method === 'POST' && reqPath === '/upload') {
-      const { cloudPath, data } = body
+      const { cloudPath, data, chunkIndex, totalChunks, uploadId } = body
       if (!cloudPath || !data) {
         return response(400, { error: '缺少 cloudPath 或 data' }, cors)
       }
@@ -355,19 +355,64 @@ exports.main = async (event, context) => {
       if (!allowed) {
         return response(400, { error: '只能上传到 images/uploads/、models/ 或 hmi-projects/assets/ 目录' }, cors)
       }
+
+      // 分片上传：适合 GLB 等大文件，避免请求体超过云函数限制
+      if (typeof chunkIndex === 'number' && typeof totalChunks === 'number' && totalChunks > 1) {
+        const id = uploadId || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+        const chunkPath = path.join('/tmp', `upload-${id}-${chunkIndex}`)
+        const match = data.match(/^data:[\w\/\+]+;base64,(.*)$/)
+        const buffer = match ? Buffer.from(match[1], 'base64') : Buffer.from(data, 'base64')
+        fs.writeFileSync(chunkPath, buffer)
+
+        // 检查是否已收齐所有分片
+        const received = Array.from({ length: totalChunks }, (_, i) =>
+          fs.existsSync(path.join('/tmp', `upload-${id}-${i}`))
+        )
+        if (!received.every(Boolean)) {
+          return response(200, { ok: true, uploadId: id, chunkIndex, totalChunks, received: received.filter(Boolean).length }, cors)
+        }
+
+        // 合并分片
+        const tmpFile = path.join('/tmp', `${Date.now()}-${path.basename(safePath)}`)
+        const writeStream = fs.createWriteStream(tmpFile)
+        for (let i = 0; i < totalChunks; i++) {
+          const chunk = fs.readFileSync(path.join('/tmp', `upload-${id}-${i}`))
+          writeStream.write(chunk)
+        }
+        await new Promise((resolve, reject) => {
+          writeStream.on('finish', resolve)
+          writeStream.on('error', reject)
+          writeStream.end()
+        })
+
+        // 上传合并后的文件
+        try {
+          await storage.uploadFile({ localPath: tmpFile, cloudPath: safePath })
+        } finally {
+          try { fs.unlinkSync(tmpFile) } catch (e) {}
+          for (let i = 0; i < totalChunks; i++) {
+            try { fs.unlinkSync(path.join('/tmp', `upload-${id}-${i}`)) } catch (e) {}
+          }
+        }
+        return response(200, { ok: true, url: assetUrl(safePath), cloudPath: safePath }, cors)
+      }
+
+      // 小文件直接 base64 上传
       await uploadBase64(safePath, data)
       return response(200, { ok: true, url: assetUrl(safePath), cloudPath: safePath }, cors)
     }
 
     // ── projects ──
+    const projectColumns = 'id, slug, title, year, category, cover, excerpt, tags, role, client, featured, hidden, "order", custom_page, glb_model_url, body, created_at, updated_at'
+
     if (method === 'GET' && reqPath === '/projects') {
-      const rows = await pgQuery('SELECT * FROM projects ORDER BY "order" ASC, id ASC')
+      const rows = await pgQuery(`SELECT ${projectColumns} FROM projects ORDER BY "order" ASC, id ASC`)
       return response(200, { projects: rows.map(normalizeProject) }, cors)
     }
 
     if (method === 'GET' && reqPath.startsWith('/projects/')) {
       const slug = reqPath.replace('/projects/', '')
-      const rows = await pgQuery(`SELECT * FROM projects WHERE slug = ${pgEscape(slug)}`)
+      const rows = await pgQuery(`SELECT ${projectColumns} FROM projects WHERE slug = ${pgEscape(slug)}`)
       if (!rows.length) return response(404, { error: '作品不存在' }, cors)
       return response(200, { project: normalizeProject(rows[0]) }, cors)
     }

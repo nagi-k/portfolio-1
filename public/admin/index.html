@@ -346,14 +346,12 @@
         state.homepage3d = (data.models || []).filter((m) => m.glbUrl)
       }
 
-      async function uploadGlb(file) {
+      async function uploadGlb(file, onProgress) {
         const ext = file.name.split('.').pop().toLowerCase()
         if (ext !== 'glb') throw new Error('请上传 .glb 格式的模型文件')
         const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
         const cloudPath = `models/${name}`
-        const dataUrl = await readFileAsDataURL(file)
-        const res = await api('POST', '/upload', { cloudPath, data: dataUrl })
-        return res.url
+        return uploadFileChunked(cloudPath, file, onProgress)
       }
 
       async function saveProject(payload, slug) {
@@ -365,13 +363,32 @@
         return api('DELETE', `/projects/${encodeURIComponent(slug)}`)
       }
 
-      async function uploadImage(file) {
+      async function uploadImage(file, onProgress) {
         const ext = file.name.split('.').pop().toLowerCase()
         const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
         const cloudPath = `images/uploads/${name}`
-        const dataUrl = await readFileAsDataURL(file)
-        const res = await api('POST', '/upload', { cloudPath, data: dataUrl })
-        return res.url
+        return uploadFileChunked(cloudPath, file, onProgress)
+      }
+
+      async function uploadFileChunked(cloudPath, file, onProgress) {
+        const maxChunkSize = 1024 * 1024 // 1MB 原始字节，base64 后约 1.33MB，远低于 6MB 限制
+        const totalChunks = Math.ceil(file.size / maxChunkSize)
+        const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+        let lastRes = null
+        for (let i = 0; i < totalChunks; i++) {
+          const chunk = file.slice(i * maxChunkSize, (i + 1) * maxChunkSize)
+          const dataUrl = await readFileAsDataURL(chunk)
+          const res = await api('POST', '/upload', {
+            cloudPath,
+            data: dataUrl,
+            chunkIndex: i,
+            totalChunks,
+            uploadId,
+          })
+          lastRes = res
+          if (onProgress) onProgress(Math.round(((i + 1) / totalChunks) * 100))
+        }
+        return lastRes.url
       }
 
       function readFileAsDataURL(file) {

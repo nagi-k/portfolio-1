@@ -100,11 +100,13 @@ async function fetchFromCloudBase() {
   // 自动补全数据库表/字段（云函数部署后可能尚未被触发执行 ensureTables）
   await ensureSchema(pg)
 
+  const projectColumns = 'id, slug, title, year, category, cover, excerpt, tags, role, client, featured, hidden, "order", custom_page, glb_model_url, body, created_at, updated_at'
+
   const [projectsRes, siteRes, aboutRes, homepage3dRes] = await Promise.all([
-    pg.executePGSql({ Sql: 'SELECT * FROM projects ORDER BY "order" ASC, id ASC', Role: 'cloudbase_postgres' }),
-    pg.executePGSql({ Sql: 'SELECT * FROM site LIMIT 1', Role: 'cloudbase_postgres' }),
-    pg.executePGSql({ Sql: 'SELECT * FROM about LIMIT 1', Role: 'cloudbase_postgres' }),
-    pg.executePGSql({ Sql: 'SELECT * FROM homepage_3d LIMIT 1', Role: 'cloudbase_postgres' }),
+    pg.executePGSql({ Sql: `SELECT ${projectColumns} FROM projects ORDER BY "order" ASC, id ASC`, Role: 'cloudbase_postgres' }),
+    pg.executePGSql({ Sql: 'SELECT id, name, role, tagline, intro, email, location, socials, updated_at FROM site LIMIT 1', Role: 'cloudbase_postgres' }),
+    pg.executePGSql({ Sql: 'SELECT id, portrait, skills, body, updated_at FROM about LIMIT 1', Role: 'cloudbase_postgres' }),
+    pg.executePGSql({ Sql: 'SELECT id, models, updated_at FROM homepage_3d LIMIT 1', Role: 'cloudbase_postgres' }),
   ])
 
   const projects = (projectsRes.Rows || []).map((s) => normalizeProject(JSON.parse(s))).filter((p) => !p.hidden)
