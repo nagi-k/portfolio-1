@@ -173,6 +173,17 @@ async function ensureTables() {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `)
+  await sleep(80)
+  await pgExec(`
+    CREATE TABLE IF NOT EXISTS upload_chunks (
+      upload_id TEXT NOT NULL,
+      chunk_index INTEGER NOT NULL,
+      total_chunks INTEGER NOT NULL,
+      data TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (upload_id, chunk_index)
+    )
+  `)
   tablesEnsured = true
 }
 
@@ -381,42 +392,40 @@ exports.main = async (event, context) => {
       }
 
       // 分片上传：适合 GLB 等大文件，避免请求体超过云函数限制
+      // 分片存到 PostgreSQL，避免 CloudBase 多实例 /tmp 不共享导致合并失败
       if (typeof chunkIndex === 'number' && typeof totalChunks === 'number' && totalChunks > 1) {
         const id = uploadId || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-        const chunkPath = path.join('/tmp', `upload-${id}-${chunkIndex}`)
-        const match = data.match(/^data:[\w\/\+]+;base64,(.*)$/)
-        const buffer = match ? Buffer.from(match[1], 'base64') : Buffer.from(data, 'base64')
-        fs.writeFileSync(chunkPath, buffer)
+        await pgExec(`
+          INSERT INTO upload_chunks (upload_id, chunk_index, total_chunks, data)
+          VALUES (${pgEscape(id)}, ${pgEscape(chunkIndex)}, ${pgEscape(totalChunks)}, ${pgEscape(data)})
+          ON CONFLICT (upload_id, chunk_index) DO UPDATE SET data = EXCLUDED.data, total_chunks = EXCLUDED.total_chunks
+        `)
 
         // 检查是否已收齐所有分片
-        const received = Array.from({ length: totalChunks }, (_, i) =>
-          fs.existsSync(path.join('/tmp', `upload-${id}-${i}`))
-        )
-        if (!received.every(Boolean)) {
-          return response(200, { ok: true, uploadId: id, chunkIndex, totalChunks, received: received.filter(Boolean).length }, cors)
+        const countRows = await pgQuery(`SELECT COUNT(*) AS cnt FROM upload_chunks WHERE upload_id = ${pgEscape(id)}`)
+        const received = Number(countRows[0] && countRows[0][0])
+        if (received < totalChunks) {
+          return response(200, { ok: true, uploadId: id, chunkIndex, totalChunks, received }, cors)
         }
 
-        // 合并分片
-        const tmpFile = path.join('/tmp', `${Date.now()}-${path.basename(safePath)}`)
-        const writeStream = fs.createWriteStream(tmpFile)
-        for (let i = 0; i < totalChunks; i++) {
-          const chunk = fs.readFileSync(path.join('/tmp', `upload-${id}-${i}`))
-          writeStream.write(chunk)
-        }
-        await new Promise((resolve, reject) => {
-          writeStream.on('finish', resolve)
-          writeStream.on('error', reject)
-          writeStream.end()
+        // 收齐了，读取所有分片并合并
+        const chunkRows = await pgQuery(`SELECT data FROM upload_chunks WHERE upload_id = ${pgEscape(id)} ORDER BY chunk_index ASC`)
+        const buffers = chunkRows.map((row) => {
+          const chunkData = row[0] || ''
+          const match = chunkData.match(/^data:[\w\/\+]+;base64,(.*)$/)
+          return Buffer.from(match ? match[1] : chunkData, 'base64')
         })
+        const merged = Buffer.concat(buffers)
+
+        const tmpFile = path.join('/tmp', `${Date.now()}-${path.basename(safePath)}`)
+        fs.writeFileSync(tmpFile, merged)
 
         // 上传合并后的文件
         try {
           await storage.uploadFile({ localPath: tmpFile, cloudPath: safePath })
         } finally {
           try { fs.unlinkSync(tmpFile) } catch (e) {}
-          for (let i = 0; i < totalChunks; i++) {
-            try { fs.unlinkSync(path.join('/tmp', `upload-${id}-${i}`)) } catch (e) {}
-          }
+          await pgExec(`DELETE FROM upload_chunks WHERE upload_id = ${pgEscape(id)}`)
         }
         return response(200, { ok: true, url: assetUrl(safePath), cloudPath: safePath }, cors)
       }

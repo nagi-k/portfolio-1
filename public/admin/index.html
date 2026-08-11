@@ -856,6 +856,7 @@
         if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>上传模型中'; }
         try {
           const url = await uploadGlb(file)
+          if (!url) throw new Error('服务器未返回模型地址')
           document.getElementById('pGlbModelUrl').value = url
           const fileNameEl = document.getElementById('glbFileName')
           fileNameEl.textContent = '已上传：' + url.split('/').pop()
@@ -993,6 +994,7 @@
         if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>上传中'; }
         try {
           const url = await uploadGlb(file)
+          if (!url) throw new Error('服务器未返回模型地址')
           document.getElementById('h3dGlbUrl').value = url
           const fileNameEl = document.getElementById('h3dFileName')
           fileNameEl.textContent = '已上传：' + url.split('/').pop()
