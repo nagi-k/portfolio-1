@@ -1,13 +1,11 @@
-import cloudbase from '@cloudbase/node-sdk'
+import CloudBase from '@cloudbase/manager-node'
 import fs from 'fs'
 import path from 'path'
 import yaml from 'js-yaml'
 
 const secretId = process.env.CLOUDBASE_SECRET_ID || process.env.TCB_SECRET_ID
-let secretKey = process.env.CLOUDBASE_SECRET_KEY || process.env.TCB_SECRET_KEY
+const secretKey = process.env.CLOUDBASE_SECRET_KEY || process.env.TCB_SECRET_KEY
 const envId = process.env.CLOUDBASE_ENV_ID || process.env.TCB_ENV_ID
-const accessKey = process.env.CLOUDBASE_ACCESS_KEY || (secretKey && secretKey.startsWith('eyJ') ? secretKey : undefined)
-if (accessKey) secretKey = undefined
 
 const outPath = path.join(process.cwd(), 'content', 'data.json')
 
@@ -17,30 +15,82 @@ function parseFrontmatter(raw) {
   return { data: yaml.load(match[1]), body: match[2].trim() }
 }
 
+function toBool(val) {
+  if (typeof val === 'boolean') return val
+  if (typeof val === 'string') return val.toLowerCase() === 'true' || val === 't'
+  return !!val
+}
+
+function normalizeProject(row) {
+  return {
+    id: Number(row[0]),
+    slug: row[1],
+    title: row[2],
+    year: row[3],
+    category: row[4],
+    cover: row[5],
+    excerpt: row[6],
+    tags: typeof row[7] === 'string' ? JSON.parse(row[7]) : row[7] || [],
+    role: row[8],
+    client: row[9],
+    featured: toBool(row[10]),
+    hidden: toBool(row[11]),
+    order: Number(row[12]),
+    customPage: row[13],
+    body: row[14],
+  }
+}
+
+function normalizeSite(row) {
+  return {
+    id: Number(row[0]),
+    name: row[1],
+    role: row[2],
+    tagline: row[3],
+    intro: row[4],
+    email: row[5],
+    location: row[6],
+    socials: typeof row[7] === 'string' ? JSON.parse(row[7]) : row[7] || [],
+  }
+}
+
+function normalizeAbout(row) {
+  return {
+    id: Number(row[0]),
+    portrait: row[1],
+    skills: typeof row[2] === 'string' ? JSON.parse(row[2]) : row[2] || [],
+    body: row[3],
+  }
+}
+
 async function fetchFromCloudBase() {
-  if (!envId || (!accessKey && (!secretId || !secretKey))) {
+  if (!envId || !secretId || !secretKey) {
     throw new Error('Missing CloudBase credentials')
   }
 
-  const app = cloudbase.init({
-    env: envId,
-    ...(accessKey ? { accessKey } : { secretId, secretKey }),
-    proxy: process.env.HTTPS_PROXY || process.env.https_proxy || undefined,
-    timeout: 30000,
+  const app = CloudBase.init({
+    secretId,
+    secretKey,
+    envId,
+    region: 'ap-shanghai',
   })
 
-  const db = app.database()
+  const pg = app.database
 
-  const [{ data: projects }, { data: siteDocs }, { data: aboutDocs }] = await Promise.all([
-    db.collection('projects').orderBy('order', 'asc').get(),
-    db.collection('site').limit(1).get(),
-    db.collection('about').limit(1).get(),
+  const [projectsRes, siteRes, aboutRes] = await Promise.all([
+    pg.executePGSql({ Sql: 'SELECT * FROM projects ORDER BY "order" ASC, id ASC', Role: 'cloudbase_postgres' }),
+    pg.executePGSql({ Sql: 'SELECT * FROM site LIMIT 1', Role: 'cloudbase_postgres' }),
+    pg.executePGSql({ Sql: 'SELECT * FROM about LIMIT 1', Role: 'cloudbase_postgres' }),
   ])
 
+  const projects = (projectsRes.Rows || []).map((s) => normalizeProject(JSON.parse(s))).filter((p) => !p.hidden)
+  const siteRows = (siteRes.Rows || []).map((s) => normalizeSite(JSON.parse(s)))
+  const aboutRows = (aboutRes.Rows || []).map((s) => normalizeAbout(JSON.parse(s)))
+
   return {
-    projects: projects.filter((p) => !p.hidden),
-    site: siteDocs[0] || {},
-    about: aboutDocs[0] || {},
+    projects,
+    site: siteRows[0] || {},
+    about: aboutRows[0] || {},
   }
 }
 
@@ -79,7 +129,7 @@ async function main() {
 
   try {
     data = await fetchFromCloudBase()
-    console.log(`✓ Fetched ${data.projects.length} projects from CloudBase`)
+    console.log(`✓ Fetched ${data.projects.length} projects from CloudBase PostgreSQL`)
   } catch (err) {
     if (process.env.CI) {
       console.error('✗ CloudBase fetch failed in CI:', err.message)

@@ -18,22 +18,33 @@ jobs:
 
       - run: npm ci
 
-      - name: Build
-        run: npm run build
-        env:
-          # CloudBase 部署在站点根路径
-          VITE_BASE: /
-          CLOUDBASE_SECRET_ID: ${{ secrets.TCB_SECRET_ID }}
-          CLOUDBASE_SECRET_KEY: ${{ secrets.TCB_SECRET_KEY }}
-          CLOUDBASE_ENV_ID: ${{ secrets.TCB_ENV_ID }}
-          # 避免 SDK 尝试访问腾讯云 metadata 服务导致构建变慢
-          TENCENTCLOUD: false
-
       - name: Install CloudBase CLI
         run: npm install -g @cloudbase/cli
 
       - name: Login CloudBase
         run: tcb login --apiKeyId ${{ secrets.TCB_SECRET_ID }} --apiKey ${{ secrets.TCB_SECRET_KEY }}
+
+      - name: Deploy admin-api function
+        run: cd cloudbase-functions/admin-api && printf '0\n' | tcb fn deploy admin-api --force --path /admin-api --install-dependency true -e ${{ secrets.TCB_ENV_ID }}
+
+      - name: Update admin-api environment variables
+        run: node scripts/update-function-env.mjs
+        env:
+          CLOUDBASE_SECRET_ID: ${{ secrets.TCB_SECRET_ID }}
+          CLOUDBASE_SECRET_KEY: ${{ secrets.TCB_SECRET_KEY }}
+          CLOUDBASE_ENV_ID: ${{ secrets.TCB_ENV_ID }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_REPO: ${{ secrets.GH_REPO }}
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_BASE: /
+          CLOUDBASE_SECRET_ID: ${{ secrets.TCB_SECRET_ID }}
+          CLOUDBASE_SECRET_KEY: ${{ secrets.TCB_SECRET_KEY }}
+          CLOUDBASE_ENV_ID: ${{ secrets.TCB_ENV_ID }}
 
       - name: Deploy to CloudBase
         run: tcb hosting deploy ./dist / -e ${{ secrets.TCB_ENV_ID }}

@@ -4,631 +4,928 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex" />
-    <title>内容管理 · Portfolio CMS</title>
-    <script src="https://imgcache.qq.com/qcloud/cloudbase-js-sdk/1.7.1/cloudbase.full.js"></script>
+    <title>内容管理后台 · Portfolio</title>
     <style>
       :root {
-        --bg: #fafafa;
-        --paper: #fff;
-        --ink: #1a1a1a;
-        --ink-soft: #555;
-        --ink-mute: #888;
-        --line: #e5e5e5;
+        --bg: #f8f9fb;
+        --surface: #ffffff;
+        --surface-hover: #f3f4f6;
+        --ink: #111827;
+        --ink-soft: #4b5563;
+        --ink-mute: #9ca3af;
+        --line: #e5e7eb;
+        --line-strong: #d1d5db;
         --accent: #2563eb;
+        --accent-hover: #1d4ed8;
+        --accent-light: #eff6ff;
         --danger: #dc2626;
+        --danger-light: #fef2f2;
+        --success: #16a34a;
+        --success-light: #f0fdf4;
+        --warning: #d97706;
+        --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05);
+        --shadow-lg: 0 10px 30px rgba(0,0,0,0.1);
+        --radius: 10px;
+        --sidebar-w: 220px;
       }
       * { box-sizing: border-box; }
+      html, body { height: 100%; }
       body {
         margin: 0;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans SC', sans-serif;
         background: var(--bg);
         color: var(--ink);
-        line-height: 1.6;
-      }
-      .container {
-        max-width: 960px;
-        margin: 0 auto;
-        padding: 24px;
-      }
-      .card {
-        background: var(--paper);
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 24px;
-        margin-bottom: 20px;
-      }
-      h1, h2, h3 { margin-top: 0; font-weight: 500; }
-      h1 { font-size: 22px; }
-      h2 { font-size: 18px; margin-bottom: 16px; }
-      label {
-        display: block;
-        margin-bottom: 6px;
+        line-height: 1.55;
         font-size: 14px;
-        color: var(--ink-soft);
       }
-      input[type='text'],
-      input[type='email'],
-      input[type='password'],
-      input[type='number'],
-      textarea,
-      select {
+      button, input, textarea, select { font-family: inherit; font-size: inherit; }
+
+      /* Utilities */
+      .hidden { display: none !important; }
+      .flex { display: flex; }
+      .items-center { align-items: center; }
+      .justify-between { justify-content: space-between; }
+      .gap-2 { gap: 8px; }
+      .gap-3 { gap: 12px; }
+      .gap-4 { gap: 16px; }
+      .w-full { width: 100%; }
+      .mt-1 { margin-top: 4px; }
+      .mt-2 { margin-top: 8px; }
+      .mt-3 { margin-top: 12px; }
+      .mt-4 { margin-top: 16px; }
+      .mb-2 { margin-bottom: 8px; }
+      .mb-4 { margin-bottom: 16px; }
+      .text-sm { font-size: 13px; }
+      .text-xs { font-size: 12px; }
+      .text-mute { color: var(--ink-mute); }
+      .text-soft { color: var(--ink-soft); }
+      .font-medium { font-weight: 500; }
+      .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+      /* Login */
+      .login-root {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+        padding: 24px;
+      }
+      .login-card {
+        width: 100%;
+        max-width: 380px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 36px;
+        box-shadow: var(--shadow-lg);
+      }
+      .login-card h1 { margin: 0 0 6px; font-size: 22px; font-weight: 600; }
+      .login-card p { margin: 0 0 24px; color: var(--ink-soft); }
+      .field label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 500; color: var(--ink-soft); }
+      .field input, .field textarea, .field select {
         width: 100%;
         padding: 10px 12px;
         border: 1px solid var(--line);
-        border-radius: 6px;
-        font-size: 14px;
-        margin-bottom: 16px;
-        font-family: inherit;
-      }
-      textarea {
-        min-height: 120px;
-        resize: vertical;
-      }
-      .row {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 16px;
-      }
-      .row > div { margin-bottom: 0; }
-      .row input, .row select, .row textarea { margin-bottom: 0; }
-      button {
-        padding: 10px 18px;
-        border: none;
-        border-radius: 6px;
-        font-size: 14px;
-        cursor: pointer;
-        background: var(--accent);
-        color: #fff;
-      }
-      button.secondary {
-        background: var(--paper);
+        border-radius: 8px;
+        background: var(--surface);
         color: var(--ink);
-        border: 1px solid var(--line);
+        outline: none;
+        transition: border-color .15s, box-shadow .15s;
       }
-      button.danger {
-        background: var(--danger);
+      .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+      .field textarea { resize: vertical; min-height: 110px; line-height: 1.6; }
+      .field .hint { font-size: 12px; color: var(--ink-mute); margin-top: 4px; }
+
+      .btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+        padding: 9px 16px; border-radius: 8px; border: 1px solid transparent;
+        font-weight: 500; cursor: pointer; transition: all .15s; white-space: nowrap;
       }
-      button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
+      .btn:disabled { opacity: .55; cursor: not-allowed; }
+      .btn-primary { background: var(--accent); color: #fff; }
+      .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+      .btn-secondary { background: var(--surface); color: var(--ink); border-color: var(--line); }
+      .btn-secondary:hover:not(:disabled) { background: var(--surface-hover); }
+      .btn-danger { background: var(--danger-light); color: var(--danger); border-color: #fecaca; }
+      .btn-danger:hover:not(:disabled) { background: #fee2e2; }
+      .btn-ghost { background: transparent; color: var(--ink-soft); }
+      .btn-ghost:hover:not(:disabled) { color: var(--ink); background: var(--surface-hover); }
+      .btn-sm { padding: 6px 12px; font-size: 13px; }
+      .btn-lg { padding: 11px 20px; }
+
+      /* Layout */
+      .app-layout { display: flex; min-height: 100vh; }
+      .sidebar {
+        width: var(--sidebar-w);
+        background: #0f172a;
+        color: #e2e8f0;
+        display: flex; flex-direction: column;
+        position: fixed; inset: 0 auto 0 0; z-index: 50;
       }
-      .btn-group {
-        display: flex;
-        gap: 10px;
-        margin-top: 20px;
+      .sidebar-brand { padding: 22px 20px; font-size: 17px; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.08); }
+      .sidebar-brand span { color: #94a3b8; font-weight: 400; font-size: 13px; display: block; margin-top: 2px; }
+      .sidebar-nav { flex: 1; padding: 12px 10px; }
+      .nav-item {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 12px; border-radius: 8px; cursor: pointer;
+        color: #94a3b8; transition: .15s; margin-bottom: 2px;
       }
-      .nav {
-        display: flex;
-        gap: 12px;
-        margin-bottom: 24px;
-        flex-wrap: wrap;
+      .nav-item:hover { color: #fff; background: rgba(255,255,255,0.06); }
+      .nav-item.active { color: #fff; background: rgba(37,99,235,0.9); }
+      .nav-icon { width: 18px; height: 18px; }
+      .sidebar-footer { padding: 14px; border-top: 1px solid rgba(255,255,255,0.08); }
+      .sidebar-footer button { width: 100%; justify-content: center; color: #94a3b8; }
+
+      .main { flex: 1; margin-left: var(--sidebar-w); min-width: 0; }
+      .topbar {
+        height: 60px; background: var(--surface); border-bottom: 1px solid var(--line);
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 24px; position: sticky; top: 0; z-index: 40;
       }
-      .nav button {
-        background: var(--paper);
-        color: var(--ink);
-        border: 1px solid var(--line);
+      .topbar h2 { margin: 0; font-size: 18px; font-weight: 600; }
+      .content { padding: 24px; max-width: 1200px; margin: 0 auto; }
+
+      /* Cards */
+      .card {
+        background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+        padding: 20px; box-shadow: var(--shadow);
       }
-      .nav button.active {
-        background: var(--accent);
-        color: #fff;
-        border-color: var(--accent);
+      .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+      .card-title { font-size: 16px; font-weight: 600; margin: 0; }
+
+      /* Stats */
+      .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+      .stat { padding: 18px; }
+      .stat-value { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+      .stat-label { color: var(--ink-soft); font-size: 13px; margin-top: 4px; }
+
+      /* Tables */
+      .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 13px; }
+      th { background: #fafafa; color: var(--ink-soft); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.3px; }
+      tr:last-child td { border-bottom: none; }
+      tr:hover td { background: var(--surface-hover); }
+      .cell-title { font-weight: 500; }
+      .cell-meta { color: var(--ink-mute); font-size: 12px; }
+      .badge {
+        display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px;
+        font-size: 12px; font-weight: 500; background: var(--accent-light); color: var(--accent);
       }
-      .list-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 14px 0;
-        border-bottom: 1px solid var(--line);
+      .badge-gray { background: #f3f4f6; color: var(--ink-soft); }
+
+      /* Filters */
+      .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+      .search-box { position: relative; flex: 1; min-width: 200px; max-width: 320px; }
+      .search-box input { width: 100%; padding: 9px 12px 9px 34px; border: 1px solid var(--line); border-radius: 8px; }
+      .search-box svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--ink-mute); }
+
+      /* Drawer */
+      .drawer-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100;
+        opacity: 0; pointer-events: none; transition: opacity .2s;
       }
-      .list-item:last-child { border-bottom: none; }
-      .list-title { font-weight: 500; }
-      .list-meta { font-size: 13px; color: var(--ink-mute); }
-      .hidden { display: none !important; }
-      .message {
-        padding: 12px 16px;
-        border-radius: 6px;
-        margin-bottom: 16px;
-        font-size: 14px;
+      .drawer-overlay.open { opacity: 1; pointer-events: auto; }
+      .drawer {
+        position: fixed; top: 0; right: 0; bottom: 0; width: min(640px, 100vw);
+        background: var(--surface); z-index: 101;
+        transform: translateX(100%); transition: transform .25s ease;
+        display: flex; flex-direction: column;
+        box-shadow: -10px 0 40px rgba(0,0,0,0.15);
       }
-      .message.success { background: #dcfce7; color: #166534; }
-      .message.error { background: #fee2e2; color: #991b1b; }
-      .preview-img {
-        max-width: 200px;
-        max-height: 120px;
-        border-radius: 4px;
-        margin-top: 8px;
-        border: 1px solid var(--line);
+      .drawer.open { transform: translateX(0); }
+      .drawer-header { padding: 20px 24px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+      .drawer-header h3 { margin: 0; font-size: 18px; }
+      .drawer-body { flex: 1; overflow-y: auto; padding: 24px; }
+      .drawer-footer { padding: 16px 24px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 10px; }
+
+      /* Form */
+      .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+      @media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
+      .form-section { margin-bottom: 24px; }
+      .form-section h4 { font-size: 14px; font-weight: 600; margin: 0 0 12px; color: var(--ink); }
+      .checkbox-row { display: flex; align-items: center; gap: 8px; }
+      .checkbox-row input { width: 16px; height: 16px; accent-color: var(--accent); }
+
+      /* Upload */
+      .upload-zone {
+        border: 2px dashed var(--line-strong); border-radius: var(--radius);
+        padding: 28px; text-align: center; color: var(--ink-soft); cursor: pointer;
+        transition: .15s; background: #fafafa;
       }
-      .tag-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 16px;
+      .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+      .upload-zone input { display: none; }
+      .preview-img { max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid var(--line); margin-top: 10px; }
+
+      /* Markdown editor */
+      .md-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; min-height: 320px; }
+      .md-wrap textarea { border: none; border-radius: 0; min-height: 320px; padding: 16px; resize: vertical; }
+      .md-preview { padding: 16px; border-left: 1px solid var(--line); background: #fafafa; overflow: auto; }
+      .md-preview h1, .md-preview h2, .md-preview h3 { margin-top: 0; }
+      .md-preview img { max-width: 100%; border-radius: 6px; }
+      @media (max-width: 768px) { .md-wrap { grid-template-columns: 1fr; } .md-preview { border-left: none; border-top: 1px solid var(--line); } }
+
+      /* Tags */
+      .tags { display: flex; flex-wrap: wrap; gap: 8px; }
+      .tag-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: #f3f4f6; border-radius: 6px; font-size: 12px; }
+      .tag-pill button { background: transparent; border: none; color: var(--ink-mute); cursor: pointer; padding: 0; font-size: 15px; line-height: 1; }
+      .tag-input { display: flex; gap: 8px; }
+      .tag-input input { flex: 1; }
+
+      /* Toast */
+      .toast-container { position: fixed; top: 18px; right: 18px; z-index: 200; display: flex; flex-direction: column; gap: 10px; }
+      .toast {
+        padding: 12px 16px; border-radius: 8px; box-shadow: var(--shadow-lg);
+        display: flex; align-items: center; gap: 10px; min-width: 240px; max-width: 360px;
+        animation: slideIn .25s ease;
       }
-      .tag {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 10px;
-        background: #f3f4f6;
-        border-radius: 4px;
-        font-size: 13px;
+      .toast.success { background: var(--success-light); color: var(--success); border: 1px solid #bbf7d0; }
+      .toast.error { background: var(--danger-light); color: var(--danger); border: 1px solid #fecaca; }
+      @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+      /* Empty */
+      .empty { text-align: center; padding: 48px 20px; color: var(--ink-mute); }
+      .empty svg { width: 48px; height: 48px; margin-bottom: 12px; opacity: .5; }
+
+      /* Mobile nav */
+      .mobile-menu-btn { display: none; background: transparent; border: none; color: var(--ink); cursor: pointer; }
+      @media (max-width: 768px) {
+        :root { --sidebar-w: 0px; }
+        .sidebar { transform: translateX(-100%); transition: transform .25s; width: 260px; }
+        .sidebar.open { transform: translateX(0); }
+        .main { margin-left: 0; }
+        .mobile-menu-btn { display: inline-flex; }
+        .topbar { padding: 0 16px; }
+        .content { padding: 16px; }
+        .stats-grid { grid-template-columns: repeat(2, 1fr); }
       }
-      .tag button {
-        padding: 0;
-        background: transparent;
-        color: var(--ink-mute);
-        font-size: 16px;
-        line-height: 1;
-      }
-      .login-box {
-        max-width: 360px;
-        margin: 80px auto;
-      }
-      .hint { font-size: 13px; color: var(--ink-mute); margin-top: 4px; }
+
+      /* Spinner */
+      .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* Modal */
+      .modal { position: fixed; inset: 0; z-index: 150; display: grid; place-items: center; background: rgba(0,0,0,0.45); padding: 20px; }
+      .modal-card { background: var(--surface); border-radius: var(--radius); width: 100%; max-width: 400px; padding: 24px; box-shadow: var(--shadow-lg); }
+      .modal-card h4 { margin: 0 0 8px; }
+      .modal-card p { margin: 0 0 20px; color: var(--ink-soft); }
+      .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
     </style>
   </head>
   <body>
     <div id="app"></div>
+    <div class="toast-container" id="toastContainer"></div>
 
     <script>
-      const ENV_ID = 'nagi-k-d8gsfr0jmc6c1e6bb'
-      const DEPLOY_SECRET = '' // 如需防滥用，填写与云函数 deploy-site 环境变量 DEPLOY_SECRET 一致的值
-      const STORAGE_DOMAIN = `https://${ENV_ID}.tcb.qcloud.la`
-      const app = cloudbase.init({ env: ENV_ID })
-      const auth = app.auth({ persistence: 'local' })
-      const db = app.database()
-      const storage = app.storage()
+      // ─────────────────────────────────────────────
+      // Config & State
+      // ─────────────────────────────────────────────
+      const API_BASE = '/admin-api'
+      const CATEGORIES = ['工业设计', 'HMI设计', '交互设计', 'UI设计', 'UX设计']
 
-      const categories = ['工业设计', 'HMI设计', '交互设计', 'UI设计', 'UX设计']
-
-      const appEl = document.getElementById('app')
-
-      function showMessage(text, type = 'success') {
-        const el = document.createElement('div')
-        el.className = `message ${type}`
-        el.textContent = text
-        appEl.insertBefore(el, appEl.firstChild)
-        setTimeout(() => el.remove(), 4000)
+      const state = {
+        token: localStorage.getItem('admin_token') || '',
+        view: 'dashboard',
+        projects: [],
+        site: {},
+        about: {},
+        loading: false,
+        drawerOpen: false,
+        editingSlug: null,
+        search: '',
+        categoryFilter: '全部',
       }
 
-      function renderLogin() {
-        appEl.innerHTML = `
-          <div class="card login-box">
-            <h1>Portfolio CMS</h1>
-            <p class="hint">使用 CloudBase 账号登录</p>
-            <label>邮箱</label>
-            <input type="email" id="email" placeholder="admin@example.com" />
-            <label>密码</label>
-            <input type="password" id="password" placeholder="密码" />
-            <button id="loginBtn" style="width:100%; margin-top:8px;">登录</button>
-          </div>
-        `
-        document.getElementById('loginBtn').onclick = async () => {
-          const email = document.getElementById('email').value
-          const password = document.getElementById('password').value
-          try {
-            await auth.signInWithEmailAndPassword(email, password)
-            renderDashboard()
-          } catch (err) {
-            showMessage('登录失败：' + err.message, 'error')
-          }
+      // ─────────────────────────────────────────────
+      // API
+      // ─────────────────────────────────────────────
+      async function api(method, path, body) {
+        const opts = {
+          method,
+          headers: { 'Content-Type': 'application/json' },
         }
-      }
-
-      async function checkLogin() {
-        const loginState = await auth.getLoginState()
-        if (loginState) {
-          renderDashboard()
-        } else {
-          renderLogin()
+        if (state.token) opts.headers.Authorization = `Bearer ${state.token}`
+        if (body) opts.body = JSON.stringify(body)
+        const res = await fetch(`${API_BASE}${path}`, opts)
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          if (res.status === 401) { logout(); }
+          throw new Error(data.error || `请求失败 ${res.status}`)
         }
+        return data
       }
 
-      function renderNav(active) {
-        return `
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
-            <h1 style="margin:0;">Portfolio CMS</h1>
-            <button class="secondary" id="logoutBtn">退出</button>
-          </div>
-          <div class="nav">
-            <button class="nav-btn ${active === 'projects' ? 'active' : ''}" data-page="projects">作品管理</button>
-            <button class="nav-btn ${active === 'site' ? 'active' : ''}" data-page="site">站点信息</button>
-            <button class="nav-btn ${active === 'about' ? 'active' : ''}" data-page="about">关于我</button>
-          </div>
-        `
+      async function login(password) {
+        const data = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password }),
+        }).then((r) => r.json())
+        if (data.error) throw new Error(data.error)
+        state.token = data.token
+        localStorage.setItem('admin_token', data.token)
+        return data
       }
 
-      function bindNav() {
-        document.querySelectorAll('.nav-btn').forEach((btn) => {
-          btn.onclick = () => {
-            const page = btn.dataset.page
-            if (page === 'projects') renderProjects()
-            if (page === 'site') renderSite()
-            if (page === 'about') renderAbout()
-          }
+      function logout() {
+        state.token = ''
+        localStorage.removeItem('admin_token')
+        renderLogin()
+      }
+
+      async function fetchProjects() {
+        const data = await api('GET', '/projects')
+        state.projects = data.projects || []
+      }
+
+      async function fetchSite() { state.site = (await api('GET', '/site')).site || {} }
+      async function fetchAbout() { state.about = (await api('GET', '/about')).about || {} }
+
+      async function saveProject(payload, slug) {
+        if (slug) return api('PUT', `/projects/${encodeURIComponent(slug)}`, payload)
+        return api('POST', '/projects', payload)
+      }
+
+      async function deleteProject(slug) {
+        return api('DELETE', `/projects/${encodeURIComponent(slug)}`)
+      }
+
+      async function uploadImage(file) {
+        const ext = file.name.split('.').pop().toLowerCase()
+        const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+        const cloudPath = `images/uploads/${name}`
+        const dataUrl = await readFileAsDataURL(file)
+        const res = await api('POST', '/upload', { cloudPath, data: dataUrl })
+        return res.url
+      }
+
+      function readFileAsDataURL(file) {
+        return new Promise((resolve, reject) => {
+          const r = new FileReader()
+          r.onload = () => resolve(r.result)
+          r.onerror = reject
+          r.readAsDataURL(file)
         })
-        document.getElementById('logoutBtn').onclick = async () => {
-          await auth.signOut()
-          renderLogin()
+      }
+
+      // ─────────────────────────────────────────────
+      // UI Helpers
+      // ─────────────────────────────────────────────
+      const appEl = () => document.getElementById('app')
+      const icons = {
+        grid: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>',
+        folder: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
+        settings: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+        user: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+        rocket: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>',
+        logout: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+        search: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+        menu: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>',
+        close: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+        box: '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>',
+      }
+
+      function toast(message, type = 'success') {
+        const el = document.createElement('div')
+        el.className = `toast ${type}`
+        el.textContent = message
+        document.getElementById('toastContainer').appendChild(el)
+        setTimeout(() => el.remove(), 3500)
+      }
+
+      function escapeHtml(text) {
+        if (text == null) return ''
+        return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+      }
+
+      function slugify(text) {
+        return text.toLowerCase().replace(/[^\w\u4e00-\u9fa5]+/g, '-').replace(/^-|-$/g, '').slice(0, 60)
+      }
+
+      // ─────────────────────────────────────────────
+      // Views
+      // ─────────────────────────────────────────────
+      function renderLogin(error = '') {
+        appEl().innerHTML = `
+          <div class="login-root">
+            <div class="login-card">
+              <h1>Portfolio CMS</h1>
+              <p>管理你的作品集网站内容</p>
+              ${error ? `<div class="toast error mb-4" style="animation:none;">${escapeHtml(error)}</div>` : ''}
+              <div class="field">
+                <label>管理员密码</label>
+                <input type="password" id="loginPassword" placeholder="输入密码" onkeydown="if(event.key==='Enter') window.doLogin()" />
+              </div>
+              <button class="btn btn-primary btn-lg w-full" id="loginBtn" onclick="window.doLogin()">登录</button>
+            </div>
+          </div>
+        `
+      }
+
+      window.doLogin = async () => {
+        const btn = document.getElementById('loginBtn')
+        const input = document.getElementById('loginPassword')
+        btn.disabled = true
+        btn.innerHTML = '<span class="spinner"></span>登录中'
+        try {
+          await login(input.value)
+          await initApp()
+        } catch (err) {
+          renderLogin(err.message)
         }
       }
 
-      async function renderDashboard() {
-        renderProjects()
+      async function initApp() {
+        await Promise.all([fetchProjects(), fetchSite(), fetchAbout()])
+        renderApp()
       }
 
-      async function renderProjects() {
-        const { data } = await db.collection('projects').orderBy('order', 'asc').get()
-        const list = data.map((p) => `
-          <div class="list-item">
-            <div>
-              <div class="list-title">${p.title || '未命名'}</div>
-              <div class="list-meta">${p.category || ''} · ${p.year || ''} · 排序 ${p.order}</div>
-            </div>
-            <div>
-              <button onclick="editProject('${p._id}')">编辑</button>
-              <button class="secondary" onclick="deleteProject('${p._id}')">删除</button>
+      function renderApp() {
+        appEl().innerHTML = `
+          <div class="app-layout">
+            <aside class="sidebar" id="sidebar">
+              <div class="sidebar-brand">Portfolio CMS<span>内容管理后台</span></div>
+              <nav class="sidebar-nav">
+                <div class="nav-item ${state.view === 'dashboard' ? 'active' : ''}" onclick="setView('dashboard')">${icons.grid}<span>概览</span></div>
+                <div class="nav-item ${state.view === 'projects' ? 'active' : ''}" onclick="setView('projects')">${icons.folder}<span>作品管理</span></div>
+                <div class="nav-item ${state.view === 'site' ? 'active' : ''}" onclick="setView('site')">${icons.settings}<span>站点信息</span></div>
+                <div class="nav-item ${state.view === 'about' ? 'active' : ''}" onclick="setView('about')">${icons.user}<span>关于我</span></div>
+              </nav>
+              <div class="sidebar-footer">
+                <button class="btn btn-ghost" onclick="window.deploySite()">${icons.rocket}<span>发布网站</span></button>
+                <button class="btn btn-ghost" style="margin-top:6px;" onclick="logout()">${icons.logout}<span>退出登录</span></button>
+              </div>
+            </aside>
+            <main class="main">
+              <header class="topbar">
+                <div class="flex items-center gap-3">
+                  <button class="mobile-menu-btn" onclick="toggleSidebar()">${icons.menu}</button>
+                  <h2>${pageTitle()}</h2>
+                </div>
+                <div class="flex items-center gap-3">
+                  ${state.view === 'projects' ? '<button class="btn btn-primary" onclick="openProjectDrawer()">+ 新建作品</button>' : ''}
+                </div>
+              </header>
+              <div class="content" id="content"></div>
+            </main>
+          </div>
+          <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+          <div class="drawer" id="drawer"></div>
+        `
+        renderContent()
+      }
+
+      function pageTitle() {
+        return { dashboard: '概览', projects: '作品管理', site: '站点信息', about: '关于我' }[state.view]
+      }
+
+      window.setView = (view) => { state.view = view; renderApp(); }
+      window.toggleSidebar = () => { document.getElementById('sidebar').classList.toggle('open'); }
+
+      function renderContent() {
+        const el = document.getElementById('content')
+        if (state.view === 'dashboard') el.innerHTML = renderDashboard()
+        if (state.view === 'projects') el.innerHTML = renderProjectsView()
+        if (state.view === 'site') el.innerHTML = renderSiteView()
+        if (state.view === 'about') el.innerHTML = renderAboutView()
+        attachViewHandlers()
+      }
+
+      function renderDashboard() {
+        const visible = state.projects.filter((p) => !p.hidden)
+        const byCat = {}
+        visible.forEach((p) => { byCat[p.category] = (byCat[p.category] || 0) + 1 })
+        return `
+          <div class="stats-grid">
+            <div class="card stat"><div class="stat-value">${visible.length}</div><div class="stat-label">已发布作品</div></div>
+            <div class="card stat"><div class="stat-value">${state.projects.filter((p) => p.hidden).length}</div><div class="stat-label">隐藏作品</div></div>
+            <div class="card stat"><div class="stat-value">${Object.keys(byCat).length}</div><div class="stat-label">作品分类</div></div>
+            <div class="card stat"><div class="stat-value">${state.projects.filter((p) => p.featured).length}</div><div class="stat-label">首页精选</div></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">分类分布</h3></div>
+            <div class="flex gap-2" style="flex-wrap:wrap;">
+              ${CATEGORIES.map((c) => `<span class="badge ${byCat[c] ? '' : 'badge-gray'}">${c} · ${byCat[c] || 0}</span>`).join('')}
             </div>
           </div>
-        `).join('')
-
-        appEl.innerHTML = `
-          ${renderNav('projects')}
-          <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-              <h2 style="margin:0;">作品列表</h2>
-              <button onclick="createProject()">+ 新建作品</button>
+          <div class="card mt-4">
+            <div class="card-header"><h3 class="card-title">最近更新</h3><button class="btn btn-secondary btn-sm" onclick="setView('projects')">查看全部</button></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>作品</th><th>分类</th><th>年份</th><th>状态</th></tr></thead>
+                <tbody>
+                  ${state.projects.slice(0, 5).map((p) => `
+                    <tr>
+                      <td><div class="cell-title">${escapeHtml(p.title)}</div><div class="cell-meta">${escapeHtml(p.slug)}</div></td>
+                      <td><span class="badge badge-gray">${escapeHtml(p.category)}</span></td>
+                      <td>${escapeHtml(p.year)}</td>
+                      <td>${p.hidden ? '<span class="badge badge-gray">隐藏</span>' : '<span class="badge">已发布</span>'}</td>
+                    </tr>
+                  `).join('') || `<tr><td colspan="4"><div class="empty">${icons.box}<div>暂无作品，去「作品管理」添加</div></div></td></tr>`}
+                </tbody>
+              </table>
             </div>
-            ${list || '<p style="color:#888;">暂无作品</p>'}
           </div>
         `
-        bindNav()
       }
 
-      function projectForm(project = {}) {
-        const isNew = !project._id
-        const tags = project.tags || []
+      function renderProjectsView() {
+        const filtered = state.projects.filter((p) => {
+          const matchSearch = (p.title + p.slug + p.category).toLowerCase().includes(state.search.toLowerCase())
+          const matchCat = state.categoryFilter === '全部' || p.category === state.categoryFilter
+          return matchSearch && matchCat
+        })
         return `
           <div class="card">
-            <h2>${isNew ? '新建作品' : '编辑作品'}</h2>
-            <div class="row">
-              <div>
-                <label>标题</label>
-                <input type="text" id="title" value="${escapeHtml(project.title || '')}" />
-              </div>
-              <div>
-                <label>年份</label>
-                <input type="text" id="year" value="${escapeHtml(project.year || '')}" />
-              </div>
+            <div class="toolbar">
+              <div class="search-box">${icons.search}<input type="text" id="projectSearch" placeholder="搜索作品..." value="${escapeHtml(state.search)}" /></div>
+              <select id="categoryFilter">
+                <option value="全部">全部分类</option>
+                ${CATEGORIES.map((c) => `<option value="${c}" ${state.categoryFilter === c ? 'selected' : ''}>${c}</option>`).join('')}
+              </select>
             </div>
-            <div class="row">
-              <div>
-                <label>类别</label>
-                <select id="category">
-                  ${categories.map((c) => `<option value="${c}" ${project.category === c ? 'selected' : ''}>${c}</option>`).join('')}
-                </select>
-              </div>
-              <div>
-                <label>排序权重（小在前）</label>
-                <input type="number" id="order" value="${project.order ?? 99}" />
-              </div>
-            </div>
-            <label>封面图</label>
-            <input type="file" id="coverFile" accept="image/*" />
-            <input type="hidden" id="cover" value="${escapeHtml(project.cover || '')}" />
-            ${project.cover ? `<img src="${project.cover}" class="preview-img" id="coverPreview" />` : '<img class="preview-img hidden" id="coverPreview" />'}
-            <label>一句话描述</label>
-            <textarea id="excerpt">${escapeHtml(project.excerpt || '')}</textarea>
-            <label>标签</label>
-            <div class="tag-list" id="tagList"></div>
-            <div style="display:flex; gap:8px; margin-bottom:16px;">
-              <input type="text" id="tagInput" placeholder="输入标签按回车" style="flex:1; margin-bottom:0;" />
-              <button type="button" onclick="addTag()">添加</button>
-            </div>
-            <div class="row">
-              <div>
-                <label>担任角色（选填）</label>
-                <input type="text" id="role" value="${escapeHtml(project.role || '')}" />
-              </div>
-              <div>
-                <label>客户 / 背景（选填）</label>
-                <input type="text" id="client" value="${escapeHtml(project.client || '')}" />
-              </div>
-            </div>
-            <div class="row">
-              <div>
-                <label>首页精选</label>
-                <select id="featured">
-                  <option value="false" ${!project.featured ? 'selected' : ''}>否</option>
-                  <option value="true" ${project.featured ? 'selected' : ''}>是</option>
-                </select>
-              </div>
-              <div>
-                <label>隐藏（不上线）</label>
-                <select id="hidden">
-                  <option value="false" ${!project.hidden ? 'selected' : ''}>否</option>
-                  <option value="true" ${project.hidden ? 'selected' : ''}>是</option>
-                </select>
-              </div>
-            </div>
-            <label>自定义详情页路径（HMI 项目专用）</label>
-            <input type="text" id="customPage" value="${escapeHtml(project.customPage || '')}" placeholder="如 /hmi-projects/project1-hmi.html" />
-            <label>项目正文（支持 Markdown）</label>
-            <textarea id="body" style="min-height:240px;">${escapeHtml(project.body || '')}</textarea>
-            <div class="btn-group">
-              <button id="saveBtn" onclick="saveProject('${project._id || ''}')">保存</button>
-              <button class="secondary" onclick="renderProjects()">取消</button>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>作品</th><th>分类</th><th>年份</th><th>排序</th><th>状态</th><th style="text-align:right;">操作</th></tr>
+                </thead>
+                <tbody>
+                  ${filtered.map((p) => `
+                    <tr>
+                      <td>
+                        <div class="flex items-center gap-3">
+                          ${p.cover ? `<img src="${escapeHtml(p.cover)}" style="width:44px;height:32px;object-fit:cover;border-radius:4px;" />` : '<div style="width:44px;height:32px;background:#f3f4f6;border-radius:4px;"></div>'}
+                          <div><div class="cell-title">${escapeHtml(p.title)}</div><div class="cell-meta">${escapeHtml(p.slug)}</div></div>
+                        </div>
+                      </td>
+                      <td><span class="badge badge-gray">${escapeHtml(p.category)}</span></td>
+                      <td>${escapeHtml(p.year)}</td>
+                      <td>${p.order}</td>
+                      <td>${p.hidden ? '<span class="badge badge-gray">隐藏</span>' : '<span class="badge">已发布</span>'}</td>
+                      <td style="text-align:right;">
+                        <button class="btn btn-secondary btn-sm" onclick="openProjectDrawer('${escapeHtml(p.slug)}')">编辑</button>
+                        <button class="btn btn-danger btn-sm" onclick="confirmDelete('${escapeHtml(p.slug)}', '${escapeHtml(p.title)}')">删除</button>
+                      </td>
+                    </tr>
+                  `).join('') || `<tr><td colspan="6"><div class="empty">${icons.box}<div>没有符合条件的作品</div></div></td></tr>`}
+                </tbody>
+              </table>
             </div>
           </div>
         `
       }
 
-      window.createProject = () => {
-        appEl.innerHTML = renderNav('projects') + projectForm()
-        bindNav()
-        bindTagInput([])
+      function renderSiteView() {
+        const s = state.site
+        return `
+          <div class="card">
+            <div class="form-section"><h4>基本信息</h4>
+              <div class="form-grid">
+                <div class="field"><label>姓名</label><input type="text" id="siteName" value="${escapeHtml(s.name || '')}" /></div>
+                <div class="field"><label>职业定位</label><input type="text" id="siteRole" value="${escapeHtml(s.role || '')}" /></div>
+                <div class="field"><label>邮箱</label><input type="text" id="siteEmail" value="${escapeHtml(s.email || '')}" /></div>
+                <div class="field"><label>所在城市</label><input type="text" id="siteLocation" value="${escapeHtml(s.location || '')}" /></div>
+              </div>
+            </div>
+            <div class="form-section"><h4>首页文案</h4>
+              <div class="field"><label>一句话介绍（tagline）</label><input type="text" id="siteTagline" value="${escapeHtml(s.tagline || '')}" /></div>
+              <div class="field"><label>首页简介</label><textarea id="siteIntro">${escapeHtml(s.intro || '')}</textarea></div>
+            </div>
+            <div class="form-section"><h4>社交链接</h4>
+              <div class="field"><label>每行一个：平台名|链接</label><textarea id="siteSocials" rows="4" placeholder="Behance|https://...\nLinkedIn|https://...">${escapeSocials(s.socials)}</textarea></div>
+            </div>
+            <div class="flex justify-between">
+              <button class="btn btn-primary" id="saveSiteBtn" onclick="window.saveSite()">保存站点信息</button>
+              <button class="btn btn-secondary" onclick="window.deploySite()">发布网站</button>
+            </div>
+          </div>
+        `
       }
 
-      window.editProject = async (id) => {
-        const { data } = await db.collection('projects').doc(id).get()
-        const project = data[0]
-        appEl.innerHTML = renderNav('projects') + projectForm(project)
-        bindNav()
-        bindTagInput(project.tags || [])
+      function renderAboutView() {
+        const a = state.about
+        return `
+          <div class="card">
+            <div class="form-section"><h4>肖像照</h4>
+              <div class="upload-zone" id="portraitUpload" onclick="document.getElementById('portraitFile').click()">
+                <div>点击或拖拽上传肖像照</div>
+                <div class="text-xs text-mute mt-1">支持 JPG、PNG，建议 1:1 比例</div>
+                <input type="file" id="portraitFile" accept="image/*" />
+              </div>
+              <img id="portraitPreview" class="preview-img ${a.portrait ? '' : 'hidden'}" src="${escapeHtml(a.portrait || '')}" />
+              <input type="hidden" id="aboutPortrait" value="${escapeHtml(a.portrait || '')}" />
+            </div>
+            <div class="form-section"><h4>技能分组</h4>
+              <div class="field"><label>每行一个：分组名|技能1、技能2</label><textarea id="aboutSkills" rows="5" placeholder="工业设计|产品建模、手板制作\n交互设计|用户研究、原型测试">${escapeSkills(a.skills)}</textarea></div>
+            </div>
+            <div class="form-section"><h4>个人简介（Markdown）</h4>
+              <div class="md-wrap">
+                <textarea id="aboutBody" oninput="updateMdPreview(this.value)">${escapeHtml(a.body || '')}</textarea>
+                <div class="md-preview" id="mdPreview"></div>
+              </div>
+            </div>
+            <div class="flex justify-between">
+              <button class="btn btn-primary" id="saveAboutBtn" onclick="window.saveAbout()">保存关于我</button>
+              <button class="btn btn-secondary" onclick="window.deploySite()">发布网站</button>
+            </div>
+          </div>
+        `
       }
 
-      window.deleteProject = async (id) => {
-        if (!confirm('确定删除这个作品？')) return
-        await db.collection('projects').doc(id).remove()
-        showMessage('已删除')
-        renderProjects()
+      function attachViewHandlers() {
+        if (state.view === 'projects') {
+          document.getElementById('projectSearch').oninput = (e) => { state.search = e.target.value; renderContent(); }
+          document.getElementById('categoryFilter').onchange = (e) => { state.categoryFilter = e.target.value; renderContent(); }
+        }
+        if (state.view === 'about') {
+          const upload = document.getElementById('portraitUpload')
+          const input = document.getElementById('portraitFile')
+          input.onchange = (e) => { if (e.target.files[0]) handlePortraitUpload(e.target.files[0]); }
+          upload.ondragover = (e) => { e.preventDefault(); upload.classList.add('dragover'); }
+          upload.ondragleave = () => upload.classList.remove('dragover')
+          upload.ondrop = (e) => { e.preventDefault(); upload.classList.remove('dragover'); if (e.dataTransfer.files[0]) handlePortraitUpload(e.dataTransfer.files[0]); }
+          updateMdPreview(document.getElementById('aboutBody')?.value || '')
+        }
       }
 
-      let currentTags = []
+      // ─────────────────────────────────────────────
+      // Project Drawer
+      // ─────────────────────────────────────────────
+      window.openProjectDrawer = async (slug = '') => {
+        state.editingSlug = slug
+        let p = { tags: [], category: '工业设计', featured: false, hidden: false, order: 99, body: '' }
+        if (slug) {
+          const data = await api('GET', `/projects/${encodeURIComponent(slug)}`)
+          p = data.project
+        }
+        const drawer = document.getElementById('drawer')
+        const overlay = document.getElementById('drawerOverlay')
+        drawer.innerHTML = `
+          <div class="drawer-header"><h3>${slug ? '编辑作品' : '新建作品'}</h3><button class="btn btn-ghost" onclick="closeDrawer()">${icons.close}</button></div>
+          <div class="drawer-body">
+            <div class="form-section"><h4>基础信息</h4>
+              <div class="form-grid">
+                <div class="field"><label>标题 *</label><input type="text" id="pTitle" value="${escapeHtml(p.title)}" /></div>
+                <div class="field"><label>URL 标识 slug * ${slug ? '<span class="hint">保存后不可改</span>' : ''}</label><input type="text" id="pSlug" value="${escapeHtml(p.slug)}" ${slug ? 'disabled' : ''} placeholder="如 halo-desk-lamp" /></div>
+                <div class="field"><label>年份</label><input type="text" id="pYear" value="${escapeHtml(p.year)}" placeholder="2025" /></div>
+                <div class="field"><label>分类</label><select id="pCategory">${CATEGORIES.map((c) => `<option value="${c}" ${p.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
+                <div class="field"><label>排序权重</label><input type="number" id="pOrder" value="${p.order}" /></div>
+                <div class="field"><label>自定义详情页（HMI 项目专用）</label><input type="text" id="pCustomPage" value="${escapeHtml(p.customPage || '')}" placeholder="/hmi-projects/xxx.html" /></div>
+                <div class="field"><label>角色</label><input type="text" id="pRole" value="${escapeHtml(p.role || '')}" /></div>
+                <div class="field"><label>客户 / 背景</label><input type="text" id="pClient" value="${escapeHtml(p.client || '')}" /></div>
+              </div>
+              <div class="form-grid mt-3" style="grid-template-columns: 1fr 1fr;">
+                <div class="field checkbox-row"><input type="checkbox" id="pFeatured" ${p.featured ? 'checked' : ''} /><label for="pFeatured" style="margin:0;">首页精选</label></div>
+                <div class="field checkbox-row"><input type="checkbox" id="pHidden" ${p.hidden ? 'checked' : ''} /><label for="pHidden" style="margin:0;">隐藏不上线</label></div>
+              </div>
+            </div>
+            <div class="form-section"><h4>封面图</h4>
+              <div class="upload-zone" id="coverUpload" onclick="document.getElementById('coverFile').click()">
+                <div>点击或拖拽上传封面图</div>
+                <div class="text-xs text-mute mt-1">建议 4:3 比例，JPG/PNG</div>
+                <input type="file" id="coverFile" accept="image/*" />
+              </div>
+              <img id="coverPreview" class="preview-img ${p.cover ? '' : 'hidden'}" src="${escapeHtml(p.cover || '')}" />
+              <input type="hidden" id="pCover" value="${escapeHtml(p.cover || '')}" />
+            </div>
+            <div class="form-section"><h4>描述与标签</h4>
+              <div class="field"><label>一句话描述</label><textarea id="pExcerpt" rows="3">${escapeHtml(p.excerpt || '')}</textarea></div>
+              <div class="field"><label>标签</label>
+                <div class="tags mb-2" id="tagList"></div>
+                <div class="tag-input"><input type="text" id="tagInput" placeholder="输入标签按回车" /><button class="btn btn-secondary" onclick="addTag()">添加</button></div>
+              </div>
+            </div>
+            <div class="form-section"><h4>项目正文（Markdown）</h4>
+              <div class="md-wrap">
+                <textarea id="pBody" oninput="updateMdPreview(this.value)">${escapeHtml(p.body || '')}</textarea>
+                <div class="md-preview" id="mdPreview"></div>
+              </div>
+            </div>
+          </div>
+          <div class="drawer-footer">
+            <button class="btn btn-secondary" onclick="closeDrawer()">取消</button>
+            <button class="btn btn-primary" id="saveProjectBtn" onclick="window.saveProject()">保存作品</button>
+          </div>
+        `
+        openDrawer()
+        bindDrawerHandlers(p.tags || [])
+        updateMdPreview(p.body || '')
+      }
 
-      function bindTagInput(tags) {
-        currentTags = [...tags]
+      function bindDrawerHandlers(tags) {
+        window.currentTags = [...tags]
         renderTags()
-        const input = document.getElementById('tagInput')
-        input.onkeydown = (e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            addTag()
-          }
-        }
-        document.getElementById('coverFile').onchange = async (e) => {
-          const file = e.target.files[0]
-          if (file) await uploadImage(file, 'cover')
-        }
+        const tagInput = document.getElementById('tagInput')
+        tagInput.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }
+        const coverUpload = document.getElementById('coverUpload')
+        const coverFile = document.getElementById('coverFile')
+        coverFile.onchange = (e) => { if (e.target.files[0]) handleCoverUpload(e.target.files[0]); }
+        coverUpload.ondragover = (e) => { e.preventDefault(); coverUpload.classList.add('dragover'); }
+        coverUpload.ondragleave = () => coverUpload.classList.remove('dragover')
+        coverUpload.ondrop = (e) => { e.preventDefault(); coverUpload.classList.remove('dragover'); if (e.dataTransfer.files[0]) handleCoverUpload(e.dataTransfer.files[0]); }
+
+        const titleInput = document.getElementById('pTitle')
+        const slugInput = document.getElementById('pSlug')
+        titleInput.oninput = () => { if (!state.editingSlug && slugInput && !slugInput.dataset.edited) slugInput.value = slugify(titleInput.value); }
+        if (slugInput) slugInput.oninput = () => { slugInput.dataset.edited = '1'; }
+      }
+
+      function openDrawer() {
+        document.getElementById('drawer').classList.add('open')
+        document.getElementById('drawerOverlay').classList.add('open')
+        document.body.style.overflow = 'hidden'
+      }
+      window.closeDrawer = () => {
+        document.getElementById('drawer').classList.remove('open')
+        document.getElementById('drawerOverlay').classList.remove('open')
+        document.body.style.overflow = ''
       }
 
       window.addTag = () => {
         const input = document.getElementById('tagInput')
         const val = input.value.trim()
-        if (val && !currentTags.includes(val)) {
-          currentTags.push(val)
-          input.value = ''
-          renderTags()
-        }
+        if (val && !window.currentTags.includes(val)) { window.currentTags.push(val); input.value = ''; renderTags(); }
       }
-
-      function removeTag(tag) {
-        currentTags = currentTags.filter((t) => t !== tag)
-        renderTags()
-      }
-
+      window.removeTag = (tag) => { window.currentTags = window.currentTags.filter((t) => t !== tag); renderTags(); }
       function renderTags() {
         const el = document.getElementById('tagList')
         if (!el) return
-        el.innerHTML = currentTags.map((t) => `
-          <span class="tag">
-            ${escapeHtml(t)}
-            <button type="button" onclick="window.removeTag('${escapeHtml(t)}')">&times;</button>
-          </span>
-        `).join('')
+        el.innerHTML = window.currentTags.map((t) => `<span class="tag-pill">${escapeHtml(t)}<button onclick="window.removeTag('${escapeHtml(t)}')">&times;</button></span>`).join('')
       }
 
-      window.removeTag = removeTag
-
-      async function uploadImage(file, field) {
+      async function handleCoverUpload(file) {
+        const btn = document.getElementById('saveProjectBtn')
+        if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>上传中'; }
         try {
-          const ext = file.name.split('.').pop()
-          const cloudPath = `images/uploads/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-          const res = await storage.uploadFile({ cloudPath, filePath: file })
-          const url = `${STORAGE_DOMAIN}/${cloudPath}`
-          document.getElementById(field).value = url
-          const preview = document.getElementById(`${field}Preview`)
-          preview.src = url
-          preview.classList.remove('hidden')
-          showMessage('图片上传成功')
-        } catch (err) {
-          showMessage('图片上传失败：' + err.message, 'error')
-        }
+          const url = await uploadImage(file)
+          document.getElementById('pCover').value = url
+          const preview = document.getElementById('coverPreview')
+          preview.src = url; preview.classList.remove('hidden')
+          toast('封面图上传成功')
+        } catch (err) { toast('上传失败：' + err.message, 'error'); }
+        finally { if (btn) { btn.disabled = false; btn.innerHTML = '保存作品'; } }
       }
 
-      window.saveProject = async (id) => {
+      async function handlePortraitUpload(file) {
+        const btn = document.getElementById('saveAboutBtn')
+        if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>上传中'; }
+        try {
+          const url = await uploadImage(file)
+          document.getElementById('aboutPortrait').value = url
+          const preview = document.getElementById('portraitPreview')
+          preview.src = url; preview.classList.remove('hidden')
+          toast('肖像照上传成功')
+        } catch (err) { toast('上传失败：' + err.message, 'error'); }
+        finally { if (btn) { btn.disabled = false; btn.innerHTML = '保存关于我'; } }
+      }
+
+      window.saveProject = async () => {
         const payload = {
-          title: document.getElementById('title').value,
-          year: document.getElementById('year').value,
-          category: document.getElementById('category').value,
-          order: Number(document.getElementById('order').value),
-          cover: document.getElementById('cover').value,
-          excerpt: document.getElementById('excerpt').value,
-          tags: currentTags,
-          role: document.getElementById('role').value,
-          client: document.getElementById('client').value,
-          featured: document.getElementById('featured').value === 'true',
-          hidden: document.getElementById('hidden').value === 'true',
-          customPage: document.getElementById('customPage').value,
-          body: document.getElementById('body').value,
+          slug: document.getElementById('pSlug').value.trim(),
+          title: document.getElementById('pTitle').value.trim(),
+          year: document.getElementById('pYear').value.trim(),
+          category: document.getElementById('pCategory').value,
+          order: Number(document.getElementById('pOrder').value) || 99,
+          cover: document.getElementById('pCover').value,
+          excerpt: document.getElementById('pExcerpt').value,
+          tags: window.currentTags,
+          role: document.getElementById('pRole').value,
+          client: document.getElementById('pClient').value,
+          featured: document.getElementById('pFeatured').checked,
+          hidden: document.getElementById('pHidden').checked,
+          customPage: document.getElementById('pCustomPage').value.trim(),
+          body: document.getElementById('pBody').value,
         }
+        if (!payload.slug || !payload.title) { toast('slug 和标题必填', 'error'); return; }
+        const btn = document.getElementById('saveProjectBtn')
+        btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>保存中'
         try {
-          if (id) {
-            await db.collection('projects').doc(id).update(payload)
-          } else {
-            await db.collection('projects').add(payload)
-          }
-          showMessage('保存成功')
-          renderProjects()
-          triggerDeploy()
-        } catch (err) {
-          showMessage('保存失败：' + err.message, 'error')
-        }
+          await saveProject(payload, state.editingSlug)
+          await fetchProjects()
+          toast('作品保存成功')
+          closeDrawer()
+          renderApp()
+        } catch (err) { toast('保存失败：' + err.message, 'error'); }
+        finally { btn.disabled = false; btn.innerHTML = '保存作品'; }
       }
 
-      async function renderSite() {
-        const { data } = await db.collection('site').limit(1).get()
-        const site = data[0] || {}
-        appEl.innerHTML = `
-          ${renderNav('site')}
-          <div class="card">
-            <h2>站点信息</h2>
-            <input type="hidden" id="siteId" value="${site._id || ''}" />
-            <div class="row">
-              <div>
-                <label>姓名</label>
-                <input type="text" id="name" value="${escapeHtml(site.name || '')}" />
-              </div>
-              <div>
-                <label>职业定位</label>
-                <input type="text" id="role" value="${escapeHtml(site.role || '')}" />
-              </div>
-            </div>
-            <label>邮箱</label>
-            <input type="text" id="email" value="${escapeHtml(site.email || '')}" />
-            <label>所在城市</label>
-            <input type="text" id="location" value="${escapeHtml(site.location || '')}" />
-            <label>一句话介绍</label>
-            <textarea id="tagline">${escapeHtml(site.tagline || '')}</textarea>
-            <label>首页简介</label>
-            <textarea id="intro">${escapeHtml(site.intro || '')}</textarea>
-            <label>社交链接（每行一个：平台名|链接）</label>
-            <textarea id="socials" placeholder="Behance|https://...\nLinkedIn|https://...">${escapeSocials(site.socials)}</textarea>
-            <div class="btn-group">
-              <button onclick="saveSite()">保存</button>
+      window.confirmDelete = (slug, title) => {
+        const modal = document.createElement('div')
+        modal.className = 'modal'
+        modal.innerHTML = `
+          <div class="modal-card">
+            <h4>删除作品</h4>
+            <p>确定要删除「${escapeHtml(title)}」吗？此操作无法撤销。</p>
+            <div class="modal-actions">
+              <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">取消</button>
+              <button class="btn btn-danger" id="confirmDeleteBtn">删除</button>
             </div>
           </div>
         `
-        bindNav()
+        document.body.appendChild(modal)
+        document.getElementById('confirmDeleteBtn').onclick = async () => {
+          try { await deleteProject(slug); await fetchProjects(); renderApp(); toast('已删除'); }
+          catch (err) { toast('删除失败：' + err.message, 'error'); }
+          modal.remove()
+        }
       }
 
+      // ─────────────────────────────────────────────
+      // Site / About Save
+      // ─────────────────────────────────────────────
       window.saveSite = async () => {
-        const id = document.getElementById('siteId').value
-        const socials = document.getElementById('socials').value
-          .split('\n')
-          .filter((l) => l.includes('|'))
-          .map((l) => {
-            const [label, url] = l.split('|')
-            return { label: label.trim(), url: url.trim() }
-          })
         const payload = {
-          name: document.getElementById('name').value,
-          role: document.getElementById('role').value,
-          email: document.getElementById('email').value,
-          location: document.getElementById('location').value,
-          tagline: document.getElementById('tagline').value,
-          intro: document.getElementById('intro').value,
-          socials,
+          name: document.getElementById('siteName').value,
+          role: document.getElementById('siteRole').value,
+          email: document.getElementById('siteEmail').value,
+          location: document.getElementById('siteLocation').value,
+          tagline: document.getElementById('siteTagline').value,
+          intro: document.getElementById('siteIntro').value,
+          socials: parseSocials(document.getElementById('siteSocials').value),
         }
-        try {
-          if (id) {
-            await db.collection('site').doc(id).update(payload)
-          } else {
-            await db.collection('site').add(payload)
-          }
-          showMessage('保存成功')
-          triggerDeploy()
-        } catch (err) {
-          showMessage('保存失败：' + err.message, 'error')
-        }
-      }
-
-      async function renderAbout() {
-        const { data } = await db.collection('about').limit(1).get()
-        const about = data[0] || {}
-        appEl.innerHTML = `
-          ${renderNav('about')}
-          <div class="card">
-            <h2>关于我</h2>
-            <input type="hidden" id="aboutId" value="${about._id || ''}" />
-            <label>肖像照</label>
-            <input type="file" id="portraitFile" accept="image/*" />
-            <input type="hidden" id="portrait" value="${escapeHtml(about.portrait || '')}" />
-            ${about.portrait ? `<img src="${about.portrait}" class="preview-img" id="portraitPreview" />` : '<img class="preview-img hidden" id="portraitPreview" />'}
-            <label>技能分组（每行一个：分组名|技能1、技能2）</label>
-            <textarea id="skills" placeholder="工业设计|产品建模、手板制作\n交互设计|用户研究、原型测试">${escapeSkills(about.skills)}</textarea>
-            <label>个人简介（Markdown）</label>
-            <textarea id="body" style="min-height:240px;">${escapeHtml(about.body || '')}</textarea>
-            <div class="btn-group">
-              <button onclick="saveAbout()">保存</button>
-            </div>
-          </div>
-        `
-        bindNav()
-        document.getElementById('portraitFile').onchange = async (e) => {
-          const file = e.target.files[0]
-          if (file) await uploadImage(file, 'portrait')
-        }
+        const btn = document.getElementById('saveSiteBtn')
+        btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>保存中'
+        try { await api('PUT', '/site', payload); await fetchSite(); toast('站点信息保存成功'); }
+        catch (err) { toast('保存失败：' + err.message, 'error'); }
+        finally { btn.disabled = false; btn.innerHTML = '保存站点信息'; }
       }
 
       window.saveAbout = async () => {
-        const id = document.getElementById('aboutId').value
-        const skills = document.getElementById('skills').value
-          .split('\n')
-          .filter((l) => l.includes('|'))
-          .map((l) => {
-            const [group, items] = l.split('|')
-            return { group: group.trim(), items: items.trim() }
-          })
         const payload = {
-          portrait: document.getElementById('portrait').value,
-          skills,
-          body: document.getElementById('body').value,
+          portrait: document.getElementById('aboutPortrait').value,
+          skills: parseSkills(document.getElementById('aboutSkills').value),
+          body: document.getElementById('aboutBody').value,
         }
-        try {
-          if (id) {
-            await db.collection('about').doc(id).update(payload)
-          } else {
-            await db.collection('about').add(payload)
-          }
-          showMessage('保存成功')
-          triggerDeploy()
-        } catch (err) {
-          showMessage('保存失败：' + err.message, 'error')
+        const btn = document.getElementById('saveAboutBtn')
+        btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>保存中'
+        try { await api('PUT', '/about', payload); await fetchAbout(); toast('关于我保存成功'); }
+        catch (err) { toast('保存失败：' + err.message, 'error'); }
+        finally { btn.disabled = false; btn.innerHTML = '保存关于我'; }
+      }
+
+      window.deploySite = async () => {
+        const modal = document.createElement('div')
+        modal.className = 'modal'
+        modal.innerHTML = `
+          <div class="modal-card">
+            <h4>发布网站</h4>
+            <p>确定要重新发布网站吗？这会触发 GitHub Actions 重新构建并部署到 CloudBase，约 1-2 分钟后生效。</p>
+            <div class="modal-actions">
+              <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">取消</button>
+              <button class="btn btn-primary" id="confirmDeployBtn">确认发布</button>
+            </div>
+          </div>
+        `
+        document.body.appendChild(modal)
+        document.getElementById('confirmDeployBtn').onclick = async () => {
+          try { await api('POST', '/deploy'); toast('部署已触发，约 1-2 分钟后生效'); }
+          catch (err) { toast('部署失败：' + err.message, 'error'); }
+          modal.remove()
         }
       }
 
-      async function triggerDeploy() {
-        try {
-          await app.callFunction({ name: 'deploy-site', data: { secret: DEPLOY_SECRET } })
-          showMessage('已触发网站重新部署，约 1-2 分钟后生效')
-        } catch (err) {
-          console.error('trigger deploy failed:', err)
-          showMessage('部署触发失败：' + err.message, 'error')
-        }
+      // ─────────────────────────────────────────────
+      // Markdown preview (simple)
+      // ─────────────────────────────────────────────
+      window.updateMdPreview = (text) => {
+        const el = document.getElementById('mdPreview')
+        if (!el) return
+        el.innerHTML = simpleMarkdownToHtml(text)
+      }
+      function simpleMarkdownToHtml(md) {
+        if (!md) return '<p style="color:#9ca3af;">暂无内容，在左侧输入 Markdown 查看预览</p>'
+        let html = escapeHtml(md)
+        html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>')
+        html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>')
+        html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>')
+        html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        html = html.replace(/\*(.*?)\*/g, '<em>$1</em>')
+        html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />')
+        html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+        html = html.replace(/^\s*-\s+(.*$)/gim, '<li>$1</li>')
+        html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+        return html.split(/\n\n+/).map((p) => {
+          const t = p.trim()
+          if (!t) return ''
+          if (/^<[hlu]/.test(t)) return t
+          return `<p>${t.replace(/\n/g, '<br/>')}</p>`
+        }).join('')
       }
 
-      function escapeHtml(text) {
-        if (text == null) return ''
-        return String(text)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
+      function parseSocials(raw) {
+        return raw.split('\n').filter((l) => l.includes('|')).map((l) => { const [label, url] = l.split('|'); return { label: label.trim(), url: url.trim() }; })
       }
-
-      function escapeSocials(socials) {
-        if (!Array.isArray(socials)) return ''
-        return socials.map((s) => `${s.label}|${s.url}`).join('\n')
+      function parseSkills(raw) {
+        return raw.split('\n').filter((l) => l.includes('|')).map((l) => { const [group, items] = l.split('|'); return { group: group.trim(), items: items.trim() }; })
       }
+      function escapeSocials(arr) { return (arr || []).map((s) => `${s.label}|${s.url}`).join('\n'); }
+      function escapeSkills(arr) { return (arr || []).map((s) => `${s.group}|${s.items}`).join('\n'); }
 
-      function escapeSkills(skills) {
-        if (!Array.isArray(skills)) return ''
-        return skills.map((s) => `${s.group}|${s.items}`).join('\n')
-      }
-
-      checkLogin()
+      // ─────────────────────────────────────────────
+      // Init
+      // ─────────────────────────────────────────────
+      if (state.token) { initApp().catch(() => renderLogin()); }
+      else { renderLogin(); }
     </script>
   </body>
 </html>

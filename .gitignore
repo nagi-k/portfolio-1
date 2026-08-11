@@ -7,3 +7,6 @@ dist-ssr
 .cloudbase-token
 .cloudbase-secret-id
 .cloudbase-secret-key
+.env
+.env.local
+cloudbase-functions/*/node_modules
