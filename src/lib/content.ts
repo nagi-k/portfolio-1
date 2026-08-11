@@ -53,8 +53,8 @@ const typedData = data as ContentData
 export function resolveAsset(src: string): string {
   if (!src) return src
   if (/^(https?:)?\/\//.test(src)) return src
-  const base = import.meta.env.BASE_URL.replace(/\/$$/, '')
-  return base + (src.startsWith('/') ? src : `/$${src}`)
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+  return base + (src.startsWith('/') ? src : `/${src}`)
 }
 
 /* ---------- 作品 ---------- */
