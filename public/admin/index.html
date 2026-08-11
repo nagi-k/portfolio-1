@@ -354,7 +354,7 @@
         return uploadFileChunked(cloudPath, file, onProgress)
       }
 
-      async function saveProject(payload, slug) {
+      async function saveProjectApi(payload, slug) {
         if (slug) return api('PUT', `/projects/${encodeURIComponent(slug)}`, payload)
         return api('POST', '/projects', payload)
       }
@@ -900,7 +900,7 @@
         const btn = document.getElementById('saveProjectBtn')
         btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>保存中'
         try {
-          await saveProject(payload, state.editingSlug)
+          await saveProjectApi(payload, state.editingSlug)
           await fetchProjects()
           toast('作品保存成功')
           closeDrawer()
