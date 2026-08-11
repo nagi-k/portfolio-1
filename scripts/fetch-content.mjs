@@ -64,6 +64,25 @@ function normalizeAbout(row) {
   }
 }
 
+async function ensureSchema(pg) {
+  try {
+    await pg.executePGSql({
+      Sql: 'ALTER TABLE projects ADD COLUMN IF NOT EXISTS glb_model_url TEXT',
+      Role: 'cloudbase_postgres',
+    })
+    await pg.executePGSql({
+      Sql: `CREATE TABLE IF NOT EXISTS homepage_3d (
+        id SERIAL PRIMARY KEY,
+        models JSONB NOT NULL DEFAULT '[]'::jsonb,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`,
+      Role: 'cloudbase_postgres',
+    })
+  } catch (err) {
+    console.warn('⚠ ensureSchema warning:', err.message)
+  }
+}
+
 async function fetchFromCloudBase() {
   if (!envId || !secretId || !secretKey) {
     throw new Error('Missing CloudBase credentials')
@@ -77,6 +96,9 @@ async function fetchFromCloudBase() {
   })
 
   const pg = app.database
+
+  // 自动补全数据库表/字段（云函数部署后可能尚未被触发执行 ensureTables）
+  await ensureSchema(pg)
 
   const [projectsRes, siteRes, aboutRes, homepage3dRes] = await Promise.all([
     pg.executePGSql({ Sql: 'SELECT * FROM projects ORDER BY "order" ASC, id ASC', Role: 'cloudbase_postgres' }),
