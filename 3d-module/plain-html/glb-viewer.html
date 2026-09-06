@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GLB Viewer</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: #f8f9fb; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+    h2 { margin: 0 0 8px; font-weight: 300; }
+    .subtitle { margin: 0 0 24px; color: #9ca3af; font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase; }
+    .viewer-wrap { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: #3a3a3a; }
+    canvas { display: block; width: 100%; height: 100%; cursor: move; }
+    .loading, .error { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.7); }
+    .loading { background: #000; flex-direction: column; gap: 12px; }
+    .error { background: rgba(0,0,0,0.8); padding: 24px; text-align: center; }
+    .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.15); border-top-color: #22d3ee; border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .hint { position: absolute; bottom: 16px; left: 16px; padding: 8px 12px; border-radius: 8px; background: rgba(0,0,0,0.5); color: rgba(255,255,255,0.6); font-size: 12px; pointer-events: none; }
+    .buttons { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+    .buttons button { padding: 10px 18px; border-radius: 999px; border: 1px solid #e5e7eb; background: #fff; color: #4b5563; cursor: pointer; transition: all .15s; }
+    .buttons button:hover { border-color: #2563eb; color: #2563eb; }
+    .buttons button.active { border-color: #2563eb; background: #2563eb; color: #fff; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <p class="subtitle">Featured 3D</p>
+    <h2>工业设计 · 精选模型</h2>
+
+    <div class="viewer-wrap" id="viewer">
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <span>Loading 3D Scene…</span>
+      </div>
+      <div class="hint">左键旋转 · 滚轮缩放 · 右键平移</div>
+    </div>
+
+    <div class="buttons" id="buttons"></div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'https://unpkg.com/three@0.185.1/build/three.module.js'
+    import { GLTFLoader } from 'https://unpkg.com/three@0.185.1/examples/jsm/loaders/GLTFLoader.js'
+    import { DRACOLoader } from 'https://unpkg.com/three@0.185.1/examples/jsm/loaders/DRACOLoader.js'
+    import { OrbitControls } from 'https://unpkg.com/three@0.185.1/examples/jsm/controls/OrbitControls.js'
+    import { RoomEnvironment } from 'https://unpkg.com/three@0.185.1/examples/jsm/environments/RoomEnvironment.js'
+
+    const models = [
+      { title: '模型一', url: '/models/1.glb' },
+      { title: '模型二', url: '/models/2.glb' },
+      { title: '模型三', url: '/models/3.glb' },
+    ]
+
+    const viewer = document.getElementById('viewer')
+    const loadingEl = document.getElementById('loading')
+    const buttonsEl = document.getElementById('buttons')
+
+    const scene = new THREE.Scene()
+    scene.background = new THREE.Color(0x3a3a3a)
+
+    const camera = new THREE.PerspectiveCamera(45, viewer.clientWidth / viewer.clientHeight, 0.01, 1000)
+    const renderer = new THREE.WebGLRenderer({ antialias: true })
+    renderer.setSize(viewer.clientWidth, viewer.clientHeight)
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    renderer.toneMapping = THREE.ACESFilmicToneMapping
+    renderer.toneMappingExposure = 1.2
+    renderer.shadowMap.enabled = true
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap
+    viewer.appendChild(renderer.domElement)
+
+    const pmremGenerator = new THREE.PMREMGenerator(renderer)
+    scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture
+
+    const controls = new OrbitControls(camera, renderer.domElement)
+    controls.enableDamping = true
+    controls.dampingFactor = 0.05
+    controls.minDistance = 1.5
+    controls.maxDistance = 8
+    controls.maxPolarAngle = Math.PI / 1.8
+
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x888888, 2.5))
+    scene.add(new THREE.AmbientLight(0xffffff, 1.0))
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 3.0)
+    keyLight.position.set(5, 8, 5)
+    keyLight.castShadow = true
+    keyLight.shadow.mapSize.set(1024, 1024)
+    scene.add(keyLight)
+
+    const spotLight = new THREE.SpotLight(0xffffff, 80)
+    spotLight.position.set(4, 7, 4)
+    spotLight.angle = Math.PI / 3
+    spotLight.penumbra = 0.5
+    spotLight.castShadow = true
+    scene.add(spotLight)
+
+    const fillLight = new THREE.PointLight(0xcceeff, 10, 20)
+    fillLight.position.set(-3, 2.5, 3)
+    scene.add(fillLight)
+
+    const rimLight = new THREE.SpotLight(0xffeedd, 60)
+    rimLight.position.set(-4, 5, -5)
+    rimLight.lookAt(0, 0, 0)
+    rimLight.angle = Math.PI / 3
+    rimLight.penumbra = 0.6
+    scene.add(rimLight)
+
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(20, 20),
+      new THREE.MeshStandardMaterial({ color: 0x505050, roughness: 0.8, metalness: 0.1 })
+    )
+    ground.rotation.x = -Math.PI / 2
+    ground.position.y = -0.8
+    ground.receiveShadow = true
+    scene.add(ground)
+
+    const dracoLoader = new DRACOLoader()
+    dracoLoader.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/')
+    const loader = new GLTFLoader()
+    loader.setDRACOLoader(dracoLoader)
+
+    let currentModel = null
+    let activeIndex = 0
+
+    function showError(msg) {
+      loadingEl.innerHTML = `<div class="error">${msg}</div>`
+      loadingEl.style.display = 'flex'
+    }
+
+    function loadModel(index) {
+      activeIndex = index
+      loadingEl.style.display = 'flex'
+      loadingEl.innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading 3D Scene…</span></div>'
+
+      Array.from(buttonsEl.children).forEach((btn, i) => {
+        btn.classList.toggle('active', i === index)
+      })
+
+      loader.load(
+        models[index].url,
+        (gltf) => {
+          if (currentModel) scene.remove(currentModel)
+          const model = gltf.scene
+          model.traverse((child) => {
+            if (child.isMesh) {
+              if (child.material) child.material.envMapIntensity = 1.2
+              child.castShadow = true
+              child.receiveShadow = true
+            }
+          })
+
+          const box = new THREE.Box3().setFromObject(model)
+          const center = box.getCenter(new THREE.Vector3())
+          const size = box.getSize(new THREE.Vector3())
+          const maxDim = Math.max(size.x, size.y, size.z)
+          const scale = 2 / maxDim
+          model.scale.setScalar(scale)
+          model.position.sub(center.multiplyScalar(scale))
+
+          scene.add(model)
+          currentModel = model
+
+          const dist = maxDim * scale * 2.5
+          camera.position.set(dist * 0.8, dist * 0.5, dist)
+          controls.target.set(0, 0, 0)
+          controls.update()
+
+          loadingEl.style.display = 'none'
+        },
+        undefined,
+        (err) => showError('模型加载失败：' + err.message)
+      )
+    }
+
+    models.forEach((m, i) => {
+      const btn = document.createElement('button')
+      btn.textContent = m.title
+      btn.addEventListener('click', () => loadModel(i))
+      buttonsEl.appendChild(btn)
+    })
+
+    loadModel(0)
+
+    function animate() {
+      requestAnimationFrame(animate)
+      controls.update()
+      renderer.render(scene, camera)
+    }
+    animate()
+
+    window.addEventListener('resize', () => {
+      const width = viewer.clientWidth
+      const height = viewer.clientHeight
+      camera.aspect = width / height
+      camera.updateProjectionMatrix()
+      renderer.setSize(width, height)
+    })
+  </script>
+</body>
+</html>
